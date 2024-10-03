@@ -40,7 +40,7 @@ public class Spine_Geodesic implements PlugInFilter {
         ArrayList <ArrayList<ImagePlus>> brainImage = new ArrayList(); ///*this has 2 elements only one for dendrite sel image and other for coresponding spine selection*/
         ArrayList results = new ArrayList(); // for storing the measurements from the images
         
-        MultiFileDialog FD = new MultiFileDialog(null,false);
+        MultiFileDialog FD = new MultiFileDialog(null,true);
 
         
         
