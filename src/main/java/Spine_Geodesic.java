@@ -273,7 +273,21 @@ public class Spine_Geodesic implements PlugInFilter {
 	}
 
     private void convert2geodesic(ArrayList dendriteSels) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        //throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        
+                for (Object o : dendriteSels){
+                    ImagePlus tmp = (ImagePlus)o;
+                    
+                    
+                    //get the minimum and maximum intensity to identify the number of objects
+                    //select out individual intensities from min to max
+                    //identify the start pixel (left top ?) as marker for each object
+                    //generate marker image (invert the mask and set the marker pixel as 1)
+                    //run the geodesic
+                    
+                    
+                    
+                }
     }
 
     private void makeMeasurements(ArrayList<ArrayList<ImagePlus>> brainImage, ArrayList results1) {
