@@ -12,10 +12,11 @@ import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
 import ij.gui.GenericDialog;
-import ij.io.FileSaver;
 import ij.plugin.filter.PlugInFilter;
+import ij.process.ByteProcessor;
 import ij.process.ImageProcessor;
-import java.nio.file.Files;
+import ij.process.ImageStatistics;
+import ij.process.StackStatistics;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -277,16 +278,31 @@ public class Spine_Geodesic implements PlugInFilter {
         
                 for (Object o : dendriteSels){
                     ImagePlus tmp = (ImagePlus)o;
-                    
-                    
+                    ImagePlus marker = tmp.duplicate();
+                    marker.getProcessor().convertToByteProcessor();
+                    marker.getProcessor().setValue(0);
+                    ByteProcessor mask;
                     //get the minimum and maximum intensity to identify the number of objects
                     //select out individual intensities from min to max
                     //identify the start pixel (left top ?) as marker for each object
                     //generate marker image (invert the mask and set the marker pixel as 1)
                     //run the geodesic
                     
+                    StackStatistics stat = new StackStatistics(tmp);
                     
+                    double lowerBnd = stat.min;
+                    double upperBnd = stat.max;
+                    double dendriteNo = upperBnd - lowerBnd;
                     
+                   for(long dendCount = 0 ; dendCount < dendriteNo ; dendCount++){
+                      tmp.getProcessor().setThreshold(dendCount, dendCount);
+                      mask = tmp.createRoiMask();
+                      //estimate the start pixel and set that pixelvalue to 1 in marker image
+                      
+                   }
+                    
+                    //use the marker stack and tmp to get the geodesic
+                    //savegeodesic
                 }
     }
 
