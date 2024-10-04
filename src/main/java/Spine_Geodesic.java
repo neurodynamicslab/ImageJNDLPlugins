@@ -12,11 +12,14 @@ import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
 import ij.gui.GenericDialog;
+import ij.gui.Roi;
 import ij.plugin.filter.PlugInFilter;
+import ij.plugin.filter.ThresholdToSelection;
 import ij.process.ByteProcessor;
 import ij.process.ImageProcessor;
 import ij.process.ImageStatistics;
 import ij.process.StackStatistics;
+import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -275,13 +278,14 @@ public class Spine_Geodesic implements PlugInFilter {
 
     private void convert2geodesic(ArrayList dendriteSels) {
         //throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-        
+                ThresholdToSelection roiCreator = new ThresholdToSelection();
                 for (Object o : dendriteSels){
                     ImagePlus tmp = (ImagePlus)o;
                     ImagePlus marker = tmp.duplicate();
-                    marker.getProcessor().convertToByteProcessor();
-                    marker.getProcessor().setValue(0);
-                    ByteProcessor mask;
+                    
+                    ByteProcessor markerProcessor  = marker.getProcessor().convertToByteProcessor();
+                    markerProcessor.setValue(0);
+                    
                     //get the minimum and maximum intensity to identify the number of objects
                     //select out individual intensities from min to max
                     //identify the start pixel (left top ?) as marker for each object
@@ -295,8 +299,11 @@ public class Spine_Geodesic implements PlugInFilter {
                     double dendriteNo = upperBnd - lowerBnd;
                     
                    for(long dendCount = 0 ; dendCount < dendriteNo ; dendCount++){
-                      tmp.getProcessor().setThreshold(dendCount, dendCount);
-                      mask = tmp.createRoiMask();
+                      ImageProcessor ip = tmp.getProcessor();
+                      ip.setThreshold(dendCount, dendCount);
+                      Roi roi =  roiCreator.convert(ip);
+                      Rectangle rect = roi.getBounds();
+                      markerProcessor.set(rect.x, rect.y, 0xff);
                       //estimate the start pixel and set that pixelvalue to 1 in marker image
                       
                    }
