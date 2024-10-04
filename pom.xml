@@ -91,5 +91,11 @@
 			<groupId>net.imagej</groupId>
 			<artifactId>ij</artifactId>
 		</dependency>
+                <dependency>
+                        <groupId>fr.inra.ijpb</groupId>
+                        <artifactId>MorphoLibJ_</artifactId>
+                        <version>1.6.3</version>
+                </dependency>
+                
 	</dependencies>
 </project>

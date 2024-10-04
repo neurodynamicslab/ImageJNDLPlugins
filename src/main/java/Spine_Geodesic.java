@@ -11,18 +11,26 @@
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
+import ij.ImageStack;
 import ij.gui.GenericDialog;
 import ij.gui.Roi;
 import ij.plugin.filter.PlugInFilter;
 import ij.plugin.filter.ThresholdToSelection;
 import ij.process.ByteProcessor;
 import ij.process.ImageProcessor;
-import ij.process.ImageStatistics;
 import ij.process.StackStatistics;
 import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import inra.ijpb.algo.DefaultAlgoListener;
+import inra.ijpb.binary.distmap.ChamferMask3D;
+import inra.ijpb.binary.distmap.ChamferMasks3D;
+import inra.ijpb.binary.geodesic.GeodesicDistanceTransform3D;
+import inra.ijpb.binary.geodesic.GeodesicDistanceTransform3DFloat;
+import inra.ijpb.color.ColorMaps;
+import inra.ijpb.data.image.ImageUtils;
+import inra.ijpb.data.image.Images3D;
 /**
  * A plugin for measuring the inter spine distances from a geodesic map. Each of the dendrite is
  * is identified by a unique number. The spine image is used to generate measurement mask. This is mask is later used on the 
@@ -70,17 +78,18 @@ public class Spine_Geodesic implements PlugInFilter {
                 FD.setTitle("Select the files with dendritic selections");
                 FD.setVisible(true);
                 
-                errStatus =  FD.getResult()== 2 ; //selection is made and has atleast one file
+                errStatus =   ! (FD.getResult()== 2) ; //selection is made and has atleast one file
                 
-                if (!errStatus)
-                        dendfNames = FD.getSelectionArray();
-                else
+                if (errStatus){
+                    System.out.printf("Please select a file : %d", FD.getResult());
                     return;
+                }else
+                    dendfNames = FD.getSelectionArray();
                 
                 FD.setTitle("Select the files with spine selections (in the same order)");
                 FD.setVisible(true);
                 
-                errStatus =  FD.getResult() == 2 ;
+                errStatus = ! ( FD.getResult() == 2 );
                 
                 if (! errStatus){
                    
@@ -102,13 +111,15 @@ public class Spine_Geodesic implements PlugInFilter {
                         tmp = new ImagePlus(name);
                         if(tmp != null)
                             dendriteSels.add(tmp);
-                        else
+                        else{
                             errFile.add(name);
+                            System.out.println(name);
+                        }
                     }
                     convert2geodesic(dendriteSels);
                     fCount  = 0;
-                    for (Iterator it = dendriteSels.iterator(); it.hasNext();) {
-                        ImagePlus imp = (ImagePlus) it.next();
+                    for (fCount = 0;fCount < dendriteSels.size(); fCount++) {
+                        ImagePlus imp = (ImagePlus) dendriteSels.get(fCount);
                         String destname = dendfNames[fCount];
                         if (! errFile.contains(destname)){
                             destname = destname.split("\\.")[0];
@@ -279,6 +290,8 @@ public class Spine_Geodesic implements PlugInFilter {
     private void convert2geodesic(ArrayList dendriteSels) {
         //throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
                 ThresholdToSelection roiCreator = new ThresholdToSelection();
+                ChamferMask3D chamferMask;
+                chamferMask =  ChamferMask3D.SVENSSON_3_4_5_7;
                 for (Object o : dendriteSels){
                     ImagePlus tmp = (ImagePlus)o;
                     ImagePlus marker = tmp.duplicate();
@@ -307,7 +320,15 @@ public class Spine_Geodesic implements PlugInFilter {
                       //estimate the start pixel and set that pixelvalue to 1 in marker image
                       
                    }
-                    
+                   GeodesicDistanceTransform3D algo = new GeodesicDistanceTransform3DFloat(chamferMask, true);
+		DefaultAlgoListener.monitor(algo);
+    	
+
+		// Compute distance on specified images
+		ImageStack result = algo.geodesicDistanceMap(marker.getImageStack(), tmp.getImageStack()); 
+                tmp.setStack(result);
+                IJ.save(tmp, name+"geo");
+                   //(marker.getImageStack(),tmp.getImageStack());
                     //use the marker stack and tmp to get the geodesic
                     //savegeodesic
                 }
