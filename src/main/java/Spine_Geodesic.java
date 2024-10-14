@@ -37,7 +37,7 @@ import java.awt.Point;
 /**
  * A plugin for measuring the inter spine distances from a geodesic map. Each of the dendrite is
  * is identified by a unique number. The spine image is used to generate measurement mask. This is mask is later used on the 
- * geodesic distance image to obtain the spines with their distance measured from internal reference point in each of the dendtrite. 
+ * geodesic distance image to obtain the spines with their distance measured from internal reference point in each of the dendrite. 
  */
 public class Spine_Geodesic implements PlugInFilter {
 	protected ImagePlus image;
@@ -63,12 +63,12 @@ public class Spine_Geodesic implements PlugInFilter {
 
 	@Override
 	public int setup(String arg, ImagePlus imp) {
-		if (arg.equals("about")) {
-			showAbout();
-			return DONE;
-		}
-
-		image = imp;
+//		if (arg.equals("about")) {
+//			showAbout();
+//			return DONE;
+//		}
+//
+//		image = imp;
 		return DOES_8G | DOES_16 | DOES_32 | DOES_RGB | DOES_STACKS;
 	}
 
@@ -283,12 +283,12 @@ public class Spine_Geodesic implements PlugInFilter {
 		// start ImageJ
 		new ImageJ();
 
-		// open the Clown sample
-		ImagePlus image = IJ.openImage("http://imagej.net/images/clown.jpg");
-		image.show();
+//		// open the Clown sample
+//		ImagePlus image = IJ.openImage("http://imagej.net/images/clown.jpg");
+//		image.show();
 
 		// run the plugin
-		IJ.runPlugIn(clazz.getName(), "");
+		//IJ.runPlugIn(clazz.getName(), "");
 	}
 
     private void convert2geodesic(ArrayList dendriteSels, String fname) {
