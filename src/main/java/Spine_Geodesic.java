@@ -293,20 +293,75 @@ public class Spine_Geodesic implements PlugInFilter {
 	}
         private void convert2geodesic(ImagePlus img,String fname){
             
-            ImagePlus marker;
+            ThresholdToSelection roiCreator = new ThresholdToSelection();
+            ChamferMask3D chamferMask;
+            chamferMask =  ChamferMask3D.SVENSSON_3_4_5_7;
+            
+            
             StackStatistics stat = new StackStatistics(img);
             int lowerInt = stat.min == 0 ? 1 :(int) Math.floor(stat.min) ;              //ideally this can be set to 1 as the enumeration of objects are integer
             int highInt  = (int)Math.ceil(stat.max);
             
             ImageStack stk = img.getStack();
             int stkSize = stk.getSize();
-            int startSlice = -1;
-            int endSlice = -1;
-            ImageStack inStk = new ImageStack();
+            
             
             for (int number = lowerInt ; number <= highInt ; number++){
+                
+                //ImagePlus marker;
+                ImageProcessor ip;
+                int startSlice = -1,endSlice = -1,minSqinSlice;
+                long curSqDist,minSqDist = 0;
+                ImageStack inStk = new ImageStack(),mkStk;
+            
+                ShapeRoi overAll = null, curRoi;
+                boolean roiSet = false;
+                Point closePoint;
+                Rectangle bRect;
             
                 for(int slice = 1 ; slice <= stkSize ; slice++){
+                    
+                  ip = stk.getProcessor(slice);
+                  ip.setThreshold(number, number);
+                  Roi roi = roiCreator.convert(ip);
+                  
+                  
+                  if(roi != null){
+                        
+                        startSlice = (startSlice == -1 )    ?   slice   :   startSlice;
+                        inStk.addSlice(ip.createMask());
+                        //rect = roi.getBounds();
+                        //find a start point by finding the minimum y and minimum x. 
+                        double [] des = roi.getFeretValues();
+                        int x = (int)des[8];
+                        int y = (int)des[9];
+                        
+                        curSqDist = x*x + y*y ;
+                        
+                        if(curSqDist < minSqDist){
+                            minSqDist = curSqDist;
+                            closePoint = new Point(x,y);
+                            minSqinSlice = slice;
+                        }
+                        
+                        if(overAll == null)
+                            overAll = new ShapeRoi(roi) ;
+                        else 
+                            overAll.or(new ShapeRoi (roi));
+                        
+                        roiSet = true;
+                  }else{
+                        if (startSlice != -1 && slice > 1 ){
+                            endSlice = slice - 1;
+                            bRect = overAll.getBounds();
+                            
+                            mkStk = stk.duplicate();
+                            
+                            stk.setRoi(new Rectangle(bRect));
+                            
+                        }
+                                
+                  }
                     
                 }
             }
