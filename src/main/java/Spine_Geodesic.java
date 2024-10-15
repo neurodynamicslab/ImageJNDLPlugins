@@ -14,6 +14,7 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.GenericDialog;
 import ij.gui.Roi;
+import ij.gui.ShapeRoi;
 import ij.plugin.filter.PlugInFilter;
 import ij.plugin.filter.ThresholdToSelection;
 import ij.process.ByteProcessor;
@@ -290,9 +291,27 @@ public class Spine_Geodesic implements PlugInFilter {
 		// run the plugin
 		//IJ.runPlugIn(clazz.getName(), "");
 	}
+        private void convert2geodesic(ImagePlus img,String fname){
+            
+            ImagePlus marker;
+            StackStatistics stat = new StackStatistics(img);
+            int lowerInt = stat.min == 0 ? 1 :(int) Math.floor(stat.min) ;              //ideally this can be set to 1 as the enumeration of objects are integer
+            int highInt  = (int)Math.ceil(stat.max);
+            
+            ImageStack stk = img.getStack();
+            int stkSize = stk.getSize();
+            int startSlice = -1;
+            int endSlice = -1;
+            ImageStack inStk = new ImageStack();
+            
+            for (int number = lowerInt ; number <= highInt ; number++){
+            
+                
+            }
+        }
 
     private void convert2geodesic(ArrayList dendriteSels, String[] fname) {
-        //throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+       
                 ThresholdToSelection roiCreator = new ThresholdToSelection();
                 ChamferMask3D chamferMask;
                 chamferMask =  ChamferMask3D.SVENSSON_3_4_5_7;
@@ -315,7 +334,7 @@ public class Spine_Geodesic implements PlugInFilter {
                    
                     double lowerBnd = (stat.min == 0 ) ? 1 : stat.min;
                     double upperBnd = stat.max;
-                    double dendriteNo = upperBnd - lowerBnd;
+                    //double dendriteNo = upperBnd - lowerBnd;
                     int stackSize = tmp.getStackSize();
                    
                     ImageStack stack = tmp.getStack();
@@ -336,6 +355,7 @@ public class Spine_Geodesic implements PlugInFilter {
                     float curSqDist, minSqDist, maxSqDist = tmp.getHeight()*tmp.getHeight() + tmp.getWidth()*tmp.getWidth();
                     int minSqinSlice = 1;
                     ImageProcessor tempPro;
+                    ShapeRoi overalRoi = null;
                     
                     for(long dendCount = (long)lowerBnd ; dendCount <= upperBnd ; dendCount++){
                       
@@ -354,6 +374,7 @@ public class Spine_Geodesic implements PlugInFilter {
                             tempPro.setThreshold(dendCount, dendCount);
                             
                             Roi roi =  roiCreator.convert(tempPro);
+                            
                             if(roi != null){
                                 //rect = roi.getBounds();
                                 //find a start point by finding the minimum y and minimum x. 
@@ -366,6 +387,10 @@ public class Spine_Geodesic implements PlugInFilter {
                                     closePoint = new Point(x,y);
                                     minSqinSlice = sliceNo;
                                 }
+                                if(overalRoi == null)
+                                    overalRoi = new ShapeRoi(roi) ;
+                                else 
+                                    overalRoi.or(new ShapeRoi (roi));
                                 roiSet = true;
                             }
                             //System.out.println(""+closeRect.x+ " M = " +closeRect.y);
@@ -378,7 +403,7 @@ public class Spine_Geodesic implements PlugInFilter {
                             System.out.println("None" + "ObjID " + dendCount);
                         }
                    }
-                   marker.show();
+                  // marker.show();
                    GeodesicDistanceTransform3D algo = new GeodesicDistanceTransform3DFloat(chamferMask, true);
                    DefaultAlgoListener.monitor(algo);
     	
@@ -387,8 +412,8 @@ public class Spine_Geodesic implements PlugInFilter {
                     
                     ImageStack result = algo.geodesicDistanceMap(marker.getImageStack(), tmp.getImageStack()); 
                     tmp.setStack(result);
-                    IJ.saveAsTiff(tmp,fname[0]+"geo" );
-                    IJ.saveAsTiff(marker,fname[0]+"mark");
+                    IJ.saveAsTiff(tmp,fname[0]+"_geo" );
+                    //IJ.saveAsTiff(marker,fname[0]+"mark");
                        //(marker.getImageStack(),tmp.getImageStack());
                         //use the marker stack and tmp to get the geodesic
                         //savegeodesic
