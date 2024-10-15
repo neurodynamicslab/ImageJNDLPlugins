@@ -306,7 +306,9 @@ public class Spine_Geodesic implements PlugInFilter {
             
             for (int number = lowerInt ; number <= highInt ; number++){
             
-                
+                for(int slice = 1 ; slice <= stkSize ; slice++){
+                    
+                }
             }
         }
 
