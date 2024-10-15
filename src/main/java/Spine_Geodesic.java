@@ -52,7 +52,7 @@ public class Spine_Geodesic implements PlugInFilter {
         
         ArrayList<ImagePlus> dendriteSels, spineSels;
         ArrayList<String> errFile;
-        
+        ArrayList<Roi> selectionRois;
         ArrayList <ArrayList<ImagePlus>> brainImage = new ArrayList(); ///*this has 2 elements only one for dendrite sel image and other for coresponding spine selection*/
         ArrayList/*<JTable or JList or ArrayList<String>>*/ results = new ArrayList(); // for storing the measurements from the images
         
@@ -159,7 +159,7 @@ public class Spine_Geodesic implements PlugInFilter {
                 
 	}
 
-	private boolean showDialog() {
+	/*private boolean showDialog() {
 		GenericDialog gd = new GenericDialog("Process pixels");
 
 		// default value is 0.00, 2 digits right of the decimal point
@@ -175,7 +175,7 @@ public class Spine_Geodesic implements PlugInFilter {
 		name = gd.getNextString();
 
 		return true;
-	}
+	}*/
 
 	/**
 	 * Process an image.
@@ -192,7 +192,7 @@ public class Spine_Geodesic implements PlugInFilter {
 	 *
 	 * @param image the image (possible multi-dimensional)
 	 */
-	public void process(ImagePlus image) {
+	/*public void process(ImagePlus image) {
 		// slice numbers start with 1 for historical reasons
 		for (int i = 1; i <= image.getStackSize(); i++)
 			process(image.getStack().getProcessor(i));
@@ -319,6 +319,7 @@ public class Spine_Geodesic implements PlugInFilter {
                     int stackSize = tmp.getStackSize();
                    
                     ImageStack stack = tmp.getStack();
+                    ImageStack resStack = stack.duplicate();
                     ImageStack markerStk = stack.duplicate();
                     marker.setStack("Marker", markerStk);
                     for(int s = 1 ; s <= markerStk.getSize(); s ++){
