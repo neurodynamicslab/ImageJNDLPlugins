@@ -120,7 +120,7 @@ public class Spine_Geodesic implements PlugInFilter {
                             System.out.println(fname);
                         }
                     }
-                    convert2geodesic(dendriteSels,dendfNames[0]);
+                    convert2geodesic(dendriteSels,dendfNames);
                     
                     for (fCount = 0;fCount < dendriteSels.size(); fCount++) {
                         ImagePlus imp = (ImagePlus) dendriteSels.get(fCount);
@@ -291,7 +291,7 @@ public class Spine_Geodesic implements PlugInFilter {
 		//IJ.runPlugIn(clazz.getName(), "");
 	}
 
-    private void convert2geodesic(ArrayList dendriteSels, String fname) {
+    private void convert2geodesic(ArrayList dendriteSels, String[] fname) {
         //throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
                 ThresholdToSelection roiCreator = new ThresholdToSelection();
                 ChamferMask3D chamferMask;
@@ -387,8 +387,8 @@ public class Spine_Geodesic implements PlugInFilter {
                     
                     ImageStack result = algo.geodesicDistanceMap(marker.getImageStack(), tmp.getImageStack()); 
                     tmp.setStack(result);
-                    IJ.saveAsTiff(tmp,fname+"geo" );
-                    IJ.saveAsTiff(marker,fname+"mark");
+                    IJ.saveAsTiff(tmp,fname[0]+"geo" );
+                    IJ.saveAsTiff(marker,fname[0]+"mark");
                        //(marker.getImageStack(),tmp.getImageStack());
                         //use the marker stack and tmp to get the geodesic
                         //savegeodesic
