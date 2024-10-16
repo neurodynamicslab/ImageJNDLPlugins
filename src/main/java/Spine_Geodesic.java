@@ -17,7 +17,10 @@ import ij.gui.Roi;
 import ij.gui.ShapeRoi;
 import ij.plugin.filter.PlugInFilter;
 import ij.plugin.filter.ThresholdToSelection;
+import ij.process.Blitter;
+import ij.process.ByteBlitter;
 import ij.process.ByteProcessor;
+import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
 import ij.process.ImageStatistics;
 import ij.process.StackProcessor;
@@ -291,6 +294,23 @@ public class Spine_Geodesic implements PlugInFilter {
 		// run the plugin
 		//IJ.runPlugIn(clazz.getName(), "");
 	}
+        /**
+         * Given an image( img of the type ImagePlus) of objects with UID (as an integer value for all the connected pixels belonging to the object)
+         * this method will run thru the object one by one and generate the geodesic image of object. The marker (reference point from which the distance is 
+         * measured ) is generated from the object by identifying the nearest pixel defined as the pixel of the object with smallest distance from the top 
+         * left corner of the image.
+         * 
+         * Algo:
+         * 
+         * Obtain the ImagePlus object and a file name for saving the result as arguments.
+         * for (each objects in the image) 
+         *  for ( all slices)
+         *      estimate the closest distance from top left corner : done thru measuring Feret's descriptors. 
+         *      save the slice and x, y co-ordinates of the nearest end of the Feret's long diameter.
+         *      
+         * @param img
+         * @param fname 
+         */
         private void convert2geodesic(ImagePlus img,String fname){
             
             ThresholdToSelection roiCreator = new ThresholdToSelection();
@@ -304,19 +324,25 @@ public class Spine_Geodesic implements PlugInFilter {
             
             ImageStack stk = img.getStack();
             int stkSize = stk.getSize();
+            ImageStack resStk = new ImageStack();
+           
+            for (int slice = 1 ; slice <= stkSize ; slice++)
+                resStk.addSlice(new FloatProcessor(stk.getWidth(),stk.getHeight()));
             
+            StackProcessor out_sp =  new StackProcessor(resStk);
             
             for (int number = lowerInt ; number <= highInt ; number++){
                 
                 //ImagePlus marker;
                 ImageProcessor ip;
-                int startSlice = -1,endSlice = -1,minSqinSlice;
+                ByteProcessor slMask;
+                int startSlice = -1,endSlice = -1,minSqinSlice = 1;
                 long curSqDist,minSqDist = 0;
-                ImageStack inStk = new ImageStack(),mkStk;
+                ImageStack inStk = new ImageStack(),markStk = new ImageStack(), maskStk = new ImageStack();
             
                 ShapeRoi overAll = null, curRoi;
                 boolean roiSet = false;
-                Point closePoint;
+                Point closePoint = null;
                 Rectangle bRect;
             
                 for(int slice = 1 ; slice <= stkSize ; slice++){
@@ -324,7 +350,8 @@ public class Spine_Geodesic implements PlugInFilter {
                   ip = stk.getProcessor(slice);
                   ip.setThreshold(number, number);
                   Roi roi = roiCreator.convert(ip);
-                  
+                  slMask = ip.createMask();
+                  maskStk.addSlice(slMask);
                   
                   if(roi != null){
                         
@@ -351,18 +378,33 @@ public class Spine_Geodesic implements PlugInFilter {
                         
                         roiSet = true;
                   }else{
-                        if (startSlice != -1 && slice > 1 ){
+                        if (startSlice != -1 && roiSet){
                             endSlice = slice - 1;
-                            bRect = overAll.getBounds();
-                            
-                            mkStk = stk.duplicate();
-                            
-                            stk.setRoi(new Rectangle(bRect));
-                            
+                            break;
+                             
                         }
                                 
                   }
                     
+                }
+                if(roiSet/*overAll != null && closePoint != null*/){
+                    bRect = overAll.getBounds();
+                    maskStk.setRoi(new Rectangle(bRect));
+                    maskStk = maskStk.crop(bRect.x, bRect.y,startSlice ,bRect.width, bRect.height,endSlice-startSlice);
+                    markStk = maskStk.duplicate();
+                    markStk.getProcessor(minSqinSlice).putPixelValue(closePoint.x - bRect.x,closePoint.y - bRect.y, 255);
+                                
+                
+                    GeodesicDistanceTransform3D algo = new GeodesicDistanceTransform3DFloat(chamferMask, true);
+                    DefaultAlgoListener.monitor(algo);
+    	
+
+                    // Compute distance on specified images
+                    
+                    ImageStack result = algo.geodesicDistanceMap(markStk, maskStk);
+                    for (int slice = startSlice,count = 0 ; slice <= endSlice ; slice++, count++){
+                        resStk.getProcessor(slice).copyBits(result.getProcessor(count), bRect.x, bRect.y, Blitter.OR);
+                    }
                 }
             }
         }
