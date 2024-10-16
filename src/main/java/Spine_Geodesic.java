@@ -407,6 +407,9 @@ public class Spine_Geodesic implements PlugInFilter {
                     }
                 }
             }
+            ImagePlus out = new ImagePlus();
+            out.setStack(resStk);
+            IJ.saveAsTiff(out, fname+"_geo");
         }
 
     private void convert2geodesic(ArrayList dendriteSels, String[] fname) {
