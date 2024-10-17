@@ -38,6 +38,8 @@ import inra.ijpb.color.ColorMaps;
 import inra.ijpb.data.image.ImageUtils;
 import inra.ijpb.data.image.Images3D;
 import java.awt.Point;
+import java.awt.geom.Point2D;
+import java.util.Arrays;
 /**
  * A plugin for measuring the inter spine distances from a geodesic map. Each of the dendrite is
  * is identified by a unique number. The spine image is used to generate measurement mask. This is mask is later used on the 
@@ -326,7 +328,7 @@ public class Spine_Geodesic implements PlugInFilter {
             ImageStack stk = img.getStack();
             ImageStack resStk = new ImageStack();
             ImageStack markStk = new ImageStack();
-            ImageStack maskStk;
+            ImageStack maskStk,result = new ImageStack();
             
             int stkSize = stk.getSize();
            
@@ -365,9 +367,27 @@ public class Spine_Geodesic implements PlugInFilter {
                         //rect = roi.getBounds();
                         //find a start point by finding the minimum y and minimum x. 
                         double [] des = roi.getFeretValues();
+                        //Point2D feretD = new Point2D(des[8],des[9]);
                         int x = (int)des[8];
                         int y = (int)des[9];
-                        
+                        if( ! roi.contains(x, y)){
+                            Point[] allPts = roi.getContainedPoints();
+                            //find nearest to x, y;
+                            int minIdx = 0, Idx = 0;
+                            double  minDist = 0, dist;
+                            for(Point Pt : allPts){
+                                dist = Pt.distance(des[8],des[9]);
+                                
+                                if(dist < minDist ){
+                                    minDist = dist;
+                                    minIdx = Idx;
+                                }  
+                                Idx++;
+                            }
+                            x = allPts[minIdx].x;
+                            y = allPts[minIdx].y;
+                        }
+                            
                         curSqDist = x*x + y*y ;
                         
                         if(curSqDist < minSqDist){
@@ -404,18 +424,24 @@ public class Spine_Geodesic implements PlugInFilter {
 
                     // Compute distance on specified images
                     
-                    ImageStack result = algo.geodesicDistanceMap(markStk, maskStk);
-                    for (int slice = 1 ; slice <= stkSize ; slice++){
-                        resStk.getProcessor(slice).copyBits(result.getProcessor(slice), bRect.x, bRect.y, Blitter.OR);
+                    result = algo.geodesicDistanceMap(markStk, maskStk);
+                    int endslice = endZ+1;
+                    for (int slice = startZ +1,count = 1 ; slice <= endslice ; slice++, count++){
+                        resStk.getProcessor(slice).copyBits(result.getProcessor(count), bRect.x, bRect.y, Blitter.OR);
                     }
                 }
                 System.out.println("Finsihed upto "+ number + " objects with x , y, z at :" + closePoint.x + ","+ closePoint.y +"," +minSqinSlice);
+//                ImagePlus out = new ImagePlus();
+//                out.setStack(result);
+//                IJ.saveAsTiff(out, fname+"_geo_"+number);
+//                out.setStack(markStk);
+//                IJ.saveAsTiff(out, fname+"_mrk_"+number);
             }
             ImagePlus out = new ImagePlus();
             out.setStack(resStk);
             IJ.saveAsTiff(out, fname+"_geo");
-            out.setStack(markStk);
-            IJ.saveAsTiff(out, fname+"_mrk");
+//            out.setStack(markStk);
+//            IJ.saveAsTiff(out, fname+"_mrk");
         }
 
     private void convert2geodesic(ArrayList dendriteSels, String[] fname) {
