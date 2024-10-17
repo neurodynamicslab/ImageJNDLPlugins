@@ -395,7 +395,7 @@ public class Spine_Geodesic implements PlugInFilter {
                         markStk.getProcessor(count).convertToByteProcessor();
                         markStk.getProcessor(count).set(0);
                     }
-                    markStk.getProcessor(minSqinSlice-(startZ+1)).putPixelValue(closePoint.x-bRect.x,closePoint.y-bRect.y, 255);
+                    markStk.getProcessor(minSqinSlice-startZ).putPixelValue(closePoint.x-bRect.x,closePoint.y-bRect.y, 255);
                                 
                 
                     GeodesicDistanceTransform3D algo = new GeodesicDistanceTransform3DFloat(chamferMask, true);
