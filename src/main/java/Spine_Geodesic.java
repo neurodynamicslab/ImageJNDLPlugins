@@ -324,19 +324,22 @@ public class Spine_Geodesic implements PlugInFilter {
             int highInt  = (int)Math.ceil(stat.max);
             
             ImageStack stk = img.getStack();
-            int stkSize = stk.getSize();
             ImageStack resStk = new ImageStack();
+            ImageStack markStk = new ImageStack();
+            ImageStack maskStk;
+            
+            int stkSize = stk.getSize();
            
             for (int slice = 1 ; slice <= stkSize ; slice++)
                 resStk.addSlice(new FloatProcessor(stk.getWidth(),stk.getHeight()));
             
-            ImageStack markStk = null,maskStk = null;
+            
             for (int number = lowerInt ; number <= highInt ; number++){
                 
                 //ImagePlus marker;
                 ImageProcessor ip;
                 ByteProcessor slMask;
-                int startSlice = -1,minSqinSlice = 1;
+                int startZ = -1,endZ = -1, depth = 0, minSqinSlice = 1;
                 long curSqDist,minSqDist ;
                 markStk = new ImageStack();
                 maskStk = new ImageStack();
@@ -346,6 +349,7 @@ public class Spine_Geodesic implements PlugInFilter {
                 Point closePoint = new Point(0,0);
                 Rectangle bRect;
                 minSqDist = img.getWidth()*img.getWidth() + img.getHeight()*img.getHeight();
+                
                 for(int slice = 1 ; slice <= stkSize ; slice++){
                     
                   ip = stk.getProcessor(slice);
@@ -356,7 +360,7 @@ public class Spine_Geodesic implements PlugInFilter {
                   
                   if(roi != null){
                         
-                        startSlice = (startSlice == -1 )    ?   slice   :   startSlice;
+                        startZ = (startZ == -1 )    ?   slice -1  :   startZ;
                         //inStk.addSlice(ip.createMask());
                         //rect = roi.getBounds();
                         //find a start point by finding the minimum y and minimum x. 
@@ -378,30 +382,20 @@ public class Spine_Geodesic implements PlugInFilter {
                             overAll.or(new ShapeRoi (roi));
                         
                         roiSet = true;
+                        endZ = slice - 1;
                   }
-//                  else{
-////                        if (roiSet){
-////                            endSlice = slice - 1 > startSlice ? slice -1 : startSlice;
-//                           break;
-//                             
-////                        }
-//                                
-//                  }
-                    
                 }
                 if(roiSet/*overAll != null && closePoint != null*/){
-                    //bRect = overAll.getBounds();
-                    //maskStk.setRoi(new Rectangle(bRect));
-                    //endSlice = (endSlice == -1) ? stkSize-1 : endSlice ;
-//                    int depth;
-//                    if(endSlice == -1)
-//                      endSlice = stkSize;
-//                    depth = endSlice - startSlice ;
-                    
-                    //int depth = endSlice - startSlice + 1;
-                    //maskStk = maskStk.crop(bRect.x, bRect.y,0 ,bRect.width, bRect.height,stkSize);
+                    bRect = overAll.getBounds();
+                    maskStk.setRoi(new Rectangle(bRect));
+                    depth = endZ - startZ +1;
+                    maskStk = maskStk.crop(bRect.x, bRect.y,startZ ,bRect.width, bRect.height,depth);
                     markStk = maskStk.duplicate();
-                    markStk.getProcessor(minSqinSlice).putPixelValue(closePoint.x,closePoint.y, 255);
+                    for (int count = 1 ; count <= depth ; count++){
+                        markStk.getProcessor(count).convertToByteProcessor();
+                        markStk.getProcessor(count).set(0);
+                    }
+                    markStk.getProcessor(minSqinSlice-(startZ+1)).putPixelValue(closePoint.x-bRect.x,closePoint.y-bRect.y, 255);
                                 
                 
                     GeodesicDistanceTransform3D algo = new GeodesicDistanceTransform3DFloat(chamferMask, true);
@@ -410,10 +404,10 @@ public class Spine_Geodesic implements PlugInFilter {
 
                     // Compute distance on specified images
                     
-                    /*ImageStack*/ resStk = algo.geodesicDistanceMap(markStk, maskStk);
-//                    for (int slice = 1 ; slice <= stkSize ; slice++){
-//                        resStk.getProcessor(slice).copyBits(result.getProcessor(slice), 0, 0, Blitter.OR);
-//                    }
+                    ImageStack result = algo.geodesicDistanceMap(markStk, maskStk);
+                    for (int slice = 1 ; slice <= stkSize ; slice++){
+                        resStk.getProcessor(slice).copyBits(result.getProcessor(slice), bRect.x, bRect.y, Blitter.OR);
+                    }
                 }
                 System.out.println("Finsihed upto "+ number + " objects with x , y, z at :" + closePoint.x + ","+ closePoint.y +"," +minSqinSlice);
             }
@@ -429,6 +423,7 @@ public class Spine_Geodesic implements PlugInFilter {
                 ThresholdToSelection roiCreator = new ThresholdToSelection();
                 ChamferMask3D chamferMask;
                 chamferMask =  ChamferMask3D.SVENSSON_3_4_5_7;
+                
                 for (Object o : dendriteSels){                              //run thru the images
                     ImagePlus tmp = (ImagePlus)o;
                     ImagePlus marker = tmp.createImagePlus();
