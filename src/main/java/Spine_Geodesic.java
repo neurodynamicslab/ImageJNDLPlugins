@@ -38,6 +38,9 @@ import inra.ijpb.color.ColorMaps;
 import inra.ijpb.data.image.ImageUtils;
 import inra.ijpb.data.image.Images3D;
 import java.awt.Point;
+import java.awt.geom.Point2D;
+import java.util.Arrays;
+import javax.swing.SwingWorker;
 /**
  * A plugin for measuring the inter spine distances from a geodesic map. Each of the dendrite is
  * is identified by a unique number. The spine image is used to generate measurement mask. This is mask is later used on the 
@@ -313,110 +316,141 @@ public class Spine_Geodesic implements PlugInFilter {
          * @param fname 
          */
         private void convert2geodesic(ImagePlus img,String fname){
-            
-            ThresholdToSelection roiCreator = new ThresholdToSelection();
-            ChamferMask3D chamferMask;
-            chamferMask =  ChamferMask3D.SVENSSON_3_4_5_7;
-            
-            
-            StackStatistics stat = new StackStatistics(img);
-            int lowerInt = stat.min == 0 ? 1 :(int) Math.floor(stat.min) ;              //ideally this can be set to 1 as the enumeration of objects are integer
-            int highInt  = (int)Math.ceil(stat.max);
-            
-            ImageStack stk = img.getStack();
-            ImageStack resStk = new ImageStack();
-            ImageStack markStk = new ImageStack();
-            ImageStack maskStk;
-            
-            int stkSize = stk.getSize();
-           
-            for (int slice = 1 ; slice <= stkSize ; slice++)
-                resStk.addSlice(new FloatProcessor(stk.getWidth(),stk.getHeight()));
-            
-            
-            for (int number = lowerInt ; number <= highInt ; number++){
-                
-                //ImagePlus marker;
-                ImageProcessor ip;
-                ByteProcessor slMask;
-                int startZ = -1,endZ = -1, depth = 0, minSqinSlice = 1;
-                long curSqDist,minSqDist ;
-                markStk = new ImageStack();
-                maskStk = new ImageStack();
-            
-                ShapeRoi overAll = null;
-                boolean roiSet = false;
-                Point closePoint = new Point(0,0);
-                Rectangle bRect;
-                minSqDist = img.getWidth()*img.getWidth() + img.getHeight()*img.getHeight();
-                
-                for(int slice = 1 ; slice <= stkSize ; slice++){
-                    
-                  ip = stk.getProcessor(slice);
-                  ip.setThreshold(number, number);
-                  Roi roi = roiCreator.convert(ip);
-                  slMask = ip.createMask();
-                  maskStk.addSlice(slMask);
-                  
-                  if(roi != null){
-                        
-                        startZ = (startZ == -1 )    ?   slice -1  :   startZ;
-                        //inStk.addSlice(ip.createMask());
-                        //rect = roi.getBounds();
-                        //find a start point by finding the minimum y and minimum x. 
-                        double [] des = roi.getFeretValues();
-                        int x = (int)des[8];
-                        int y = (int)des[9];
-                        
-                        curSqDist = x*x + y*y ;
-                        
-                        if(curSqDist < minSqDist){
-                            minSqDist = curSqDist;
-                            closePoint = new Point(x,y);
-                            minSqinSlice = slice;
-                        }
-                        
-                        if(overAll == null)
-                            overAll = new ShapeRoi(roi) ;
-                        else 
-                            overAll.or(new ShapeRoi (roi));
-                        
-                        roiSet = true;
-                        endZ = slice - 1;
-                  }
-                }
-                if(roiSet/*overAll != null && closePoint != null*/){
-                    bRect = overAll.getBounds();
-                    maskStk.setRoi(new Rectangle(bRect));
-                    depth = endZ - startZ +1;
-                    maskStk = maskStk.crop(bRect.x, bRect.y,startZ ,bRect.width, bRect.height,depth);
-                    markStk = maskStk.duplicate();
-                    for (int count = 1 ; count <= depth ; count++){
-                        markStk.getProcessor(count).convertToByteProcessor();
-                        markStk.getProcessor(count).set(0);
-                    }
-                    markStk.getProcessor(minSqinSlice-(startZ+1)).putPixelValue(closePoint.x-bRect.x,closePoint.y-bRect.y, 255);
-                                
-                
-                    GeodesicDistanceTransform3D algo = new GeodesicDistanceTransform3DFloat(chamferMask, true);
-                    DefaultAlgoListener.monitor(algo);
-    	
+            SwingWorker worker = new SwingWorker(){
+                @Override
+                protected Object doInBackground() throws Exception {
+                   
+                            ThresholdToSelection roiCreator = new ThresholdToSelection();
+                            ChamferMask3D chamferMask;
+                            chamferMask =  ChamferMask3D.SVENSSON_3_4_5_7;
 
-                    // Compute distance on specified images
-                    
-                    ImageStack result = algo.geodesicDistanceMap(markStk, maskStk);
-                    int resultSize  = result.getSize();
-                    for (int slice = startZ,resSlice = 0 ; resSlice < depth ; slice++,resSlice++){
-                        resStk.getProcessor(slice).copyBits(result.getProcessor(resSlice), bRect.x, bRect.y, Blitter.OR);
-                    }
+
+                            StackStatistics stat = new StackStatistics(img);
+                            int lowerInt = stat.min == 0 ? 1 :(int) Math.floor(stat.min) ;              //ideally this can be set to 1 as the enumeration of objects are integer
+                            int highInt  = (int)Math.ceil(stat.max);
+
+                            ImageStack stk = img.getStack();
+                            ImageStack resStk = new ImageStack();
+                            ImageStack markStk; // = new ImageStack();
+                            ImageStack maskStk,result ; //= new ImageStack();
+
+                            int stkSize = stk.getSize();
+
+                            for (int slice = 1 ; slice <= stkSize ; slice++)
+                                resStk.addSlice(new FloatProcessor(stk.getWidth(),stk.getHeight()));
+
+
+                            for (int number = lowerInt ; number <= highInt ; number++){
+
+                                //ImagePlus marker;
+                                ImageProcessor ip;
+                                ByteProcessor slMask;
+                                int startZ = -1,endZ = -1, depth, minSqinSlice = 1;
+                                long curSqDist,minSqDist ;
+                                //markStk = new ImageStack();
+                                maskStk = new ImageStack();
+
+                                ShapeRoi overAll = null;
+                                boolean roiSet = false;
+                                Point closePoint = new Point(0,0);
+                                Rectangle bRect;
+                                minSqDist = img.getWidth()*img.getWidth() + img.getHeight()*img.getHeight();
+
+                                for(int slice = 1 ; slice <= stkSize ; slice++){
+
+                                  ip = stk.getProcessor(slice);
+                                  ip.setThreshold(number, number);
+                                  Roi roi = roiCreator.convert(ip);
+                                  slMask = ip.createMask();
+                                  maskStk.addSlice(slMask);
+
+                                  if(roi != null){
+
+                                        startZ = (startZ == -1 )    ?   slice -1  :   startZ;
+                                        //inStk.addSlice(ip.createMask());
+                                        //rect = roi.getBounds();
+                                        //find a start point by finding the minimum y and minimum x. 
+                                        double [] des = roi.getFeretValues();
+                                        //Point2D feretD = new Point2D(des[8],des[9]);
+                                        int x = (int)des[8];
+                                        int y = (int)des[9];
+                                        if( ! roi.contains(x, y)){
+                                            Point[] allPts = roi.getContainedPoints();
+                                            //find nearest to x, y;
+                                            int minIdx = 0, Idx = 0;
+                                            double  minDist = 0, dist;
+                                            for(Point Pt : allPts){
+                                                dist = Pt.distance(des[8],des[9]);
+
+                                                if(dist < minDist ){
+                                                    minDist = dist;
+                                                    minIdx = Idx;
+                                                }  
+                                                Idx++;
+                                            }
+                                            x = allPts[minIdx].x;
+                                            y = allPts[minIdx].y;
+                                        }
+
+                                        curSqDist = x*x + y*y ;
+
+                                        if(curSqDist < minSqDist){
+                                            minSqDist = curSqDist;
+                                            closePoint = new Point(x,y);
+                                            minSqinSlice = slice;
+                                        }
+
+                                        if(overAll == null)
+                                            overAll = new ShapeRoi(roi) ;
+                                        else 
+                                            overAll.or(new ShapeRoi (roi));
+
+                                        roiSet = true;
+                                        endZ = slice - 1;
+                                  }
+                                }
+                                if(roiSet/*overAll != null && closePoint != null*/){
+                                    bRect = overAll.getBounds();
+                                    maskStk.setRoi(new Rectangle(bRect));
+                                    depth = endZ - startZ +1;
+                                    maskStk = maskStk.crop(bRect.x, bRect.y,startZ ,bRect.width, bRect.height,depth);
+                                    markStk = maskStk.duplicate();
+                                    for (int count = 1 ; count <= depth ; count++){
+                                        markStk.getProcessor(count).convertToByteProcessor();
+                                        markStk.getProcessor(count).set(0);
+                                    }
+                                    markStk.getProcessor(minSqinSlice-startZ).putPixelValue(closePoint.x-bRect.x,closePoint.y-bRect.y, 255);
+
+
+                                    GeodesicDistanceTransform3D algo = new GeodesicDistanceTransform3DFloat(chamferMask, true);
+                                    DefaultAlgoListener.monitor(algo);
+
+
+                                    // Compute distance on specified images
+
+                                    result = algo.geodesicDistanceMap(markStk, maskStk);
+                                    int endslice = endZ+1;
+                                    for (int slice = startZ +1,count = 1 ; slice <= endslice ; slice++, count++){
+                                        resStk.getProcessor(slice).copyBits(result.getProcessor(count), bRect.x, bRect.y, Blitter.OR);
+                                    }
+                                }
+                                System.out.println("Finsihed upto "+ number + " objects with x , y, z at :" + closePoint.x + ","+ closePoint.y +"," +minSqinSlice);
+                //                ImagePlus out = new ImagePlus();
+                //                out.setStack(result);
+                //                IJ.saveAsTiff(out, fname+"_geo_"+number);
+                //                out.setStack(markStk);
+                //                IJ.saveAsTiff(out, fname+"_mrk_"+number);
+                            }
+                            ImagePlus out = new ImagePlus();
+                            out.setStack(resStk);
+                            IJ.saveAsTiff(out, fname+"_geo");
+                            img.setStack(resStk);
+                //            out.setStack(markStk);
+                //            IJ.saveAsTiff(out, fname+"_mrk");
+                 return null;
                 }
-                System.out.println("Finsihed upto "+ number + " objects with x , y, z at :" + closePoint.x + ","+ closePoint.y +"," +minSqinSlice);
-            }
-            ImagePlus out = new ImagePlus();
-            out.setStack(resStk);
-            IJ.saveAsTiff(out, fname+"_geo");
-            out.setStack(markStk);
-            IJ.saveAsTiff(out, fname+"_mrk");
+                
+            }; worker.execute();
         }
 
     private void convert2geodesic(ArrayList dendriteSels, String[] fname) {
