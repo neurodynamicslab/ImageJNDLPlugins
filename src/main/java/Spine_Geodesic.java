@@ -405,8 +405,9 @@ public class Spine_Geodesic implements PlugInFilter {
                     // Compute distance on specified images
                     
                     ImageStack result = algo.geodesicDistanceMap(markStk, maskStk);
-                    for (int slice = 1 ; slice <= stkSize ; slice++){
-                        resStk.getProcessor(slice).copyBits(result.getProcessor(slice), bRect.x, bRect.y, Blitter.OR);
+                    int resultSize  = result.getSize();
+                    for (int slice = startZ,resSlice = 0 ; resSlice < depth ; slice++,resSlice++){
+                        resStk.getProcessor(slice).copyBits(result.getProcessor(resSlice), bRect.x, bRect.y, Blitter.OR);
                     }
                 }
                 System.out.println("Finsihed upto "+ number + " objects with x , y, z at :" + closePoint.x + ","+ closePoint.y +"," +minSqinSlice);
