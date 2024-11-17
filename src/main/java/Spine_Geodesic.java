@@ -96,20 +96,20 @@ public class Spine_Geodesic implements PlugInFilter {
                     return;
                 }else
                     dendfNames = FD.getSelectionArray();
-                
-                FD.setTitle("Select the files with spine selections (in the same order)");
-                FD.setVisible(true);
-                
-                errStatus = ! ( FD.getResult() == 2 );
+//                
+//                FD.setTitle("Select the files with spine selections (in the same order)");
+//                FD.setVisible(true);
+//                
+//                errStatus = ! ( FD.getResult() == 2 );
                 
                 if (! errStatus){
                    
-                    spinefNames = FD.getSelectionArray();
-                    
-                    errStatus =  !( spinefNames.length == dendfNames.length);
-                    
-                    if(errStatus)
-                        return;
+//                    spinefNames = FD.getSelectionArray();
+//                    
+//                    errStatus =  !( spinefNames.length == dendfNames.length);
+//                    
+//                    if(errStatus)
+//                        return;
                     
                     //TODO : show the paired fnames in a dual window list and allow the user to change the pairing
                     int fCount;
@@ -316,6 +316,7 @@ public class Spine_Geodesic implements PlugInFilter {
          * @param fname 
          */
         private void convert2geodesic(ImagePlus img,String fname){
+            
             SwingWorker worker = new SwingWorker(){
                 @Override
                 protected Object doInBackground() throws Exception {
@@ -450,7 +451,8 @@ public class Spine_Geodesic implements PlugInFilter {
                  return null;
                 }
                 
-            }; worker.execute();
+            };
+            worker.execute();
         }
 
     private void convert2geodesic(ArrayList dendriteSels, String[] fname) {
