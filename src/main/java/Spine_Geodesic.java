@@ -29,7 +29,6 @@ import inra.ijpb.binary.distmap.ChamferMask3D;
 import inra.ijpb.binary.geodesic.GeodesicDistanceTransform3D;
 import inra.ijpb.binary.geodesic.GeodesicDistanceTransform3DFloat;
 import java.awt.Point;
-import static java.lang.Thread.sleep;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.SwingWorker;
@@ -49,7 +48,7 @@ public class Spine_Geodesic implements PlugInFilter {
 	public double value;
 	public String name;
         
-        ArrayList <SwingWorker> monitor = new ArrayList();
+        ArrayList <Thread> monitor = new ArrayList();
         int threadCount;
         ArrayList<ImagePlus> dendriteSels, spineSels;
         ArrayList<String> errFile;
@@ -143,12 +142,17 @@ public class Spine_Geodesic implements PlugInFilter {
                     int activeCount = monitor.size();
                     while(activeCount > 0){
                         for (int count = 0 ; count < activeCount ; count ++){
-                            if(monitor.get(count).isDone())
-                                activeCount--;
+                            if(!monitor.get(count).isAlive()){
+                              activeCount--;
+                                if(activeCount > 0) 
+                                    System.out.println("Waiting for "+activeCount+ "threads to end out of " + monitor.size());
+                                else
+                                    System.out.println("All threads have ended");
+                            }
                         }
-                        System.out.println("Waiting for "+activeCount+ "threads to end out of " + monitor.size());
+                       
                         try {
-                            this.wait(10);
+                            Thread.sleep(10);
                         } catch (InterruptedException ex) {
                             //Logger.getLogger(Spine_Geodesic.class.getName()).log(Level.SEVERE, null, ex);
                         }
@@ -441,7 +445,7 @@ public class Spine_Geodesic implements PlugInFilter {
                                         resStk.getProcessor(slice).copyBits(result.getProcessor(count), bRect.x, bRect.y, Blitter.OR);
                                     }
                                 }
-                                System.out.println("Finsihed upto "+ number + " objects with x , y, z at :" + closePoint.x + ","+ closePoint.y +"," +minSqinSlice);
+                                //System.out.println("Finsihed upto "+ number + " objects with x , y, z at :" + closePoint.x + ","+ closePoint.y +"," +minSqinSlice);
                 //                ImagePlus out = new ImagePlus();
                 //                out.setStack(result);
                 //                IJ.saveAsTiff(out, fname+"_geo_"+number);
@@ -458,8 +462,10 @@ public class Spine_Geodesic implements PlugInFilter {
                 }
                 
             };
-            worker.execute();
-            monitor.add(worker);
+            Thread tp = new Thread(worker,"gesodesic");
+            //worker.execute();
+            tp.start();
+            monitor.add(tp);
             threadCount++;
         }
 
