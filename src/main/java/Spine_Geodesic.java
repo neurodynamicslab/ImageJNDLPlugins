@@ -323,6 +323,7 @@ public class Spine_Geodesic implements PlugInFilter {
          * @param fname 
          */
         private void convert2geodesic(ImagePlus img,String fname){
+            
             SwingWorker worker = new SwingWorker(){
                 @Override
                 protected Object doInBackground() throws Exception {
