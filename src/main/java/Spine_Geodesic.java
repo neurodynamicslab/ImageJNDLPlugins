@@ -29,6 +29,7 @@ import inra.ijpb.binary.distmap.ChamferMask3D;
 import inra.ijpb.binary.geodesic.GeodesicDistanceTransform3D;
 import inra.ijpb.binary.geodesic.GeodesicDistanceTransform3DFloat;
 import java.awt.Point;
+import java.io.File;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.SwingWorker;
@@ -105,40 +106,43 @@ public class Spine_Geodesic implements PlugInFilter {
                        // return;
                     
                     //TODO : show the paired fnames in a dual window list and allow the user to change the pairing
-                    int fCount;
-                    ImagePlus tmp;
+                    int fCount = 0;
                     dendriteSels = new ArrayList();
                     errFile = new ArrayList();
-                    
+                    String destPrefix = "_geo";
                     for (String fname : dendfNames){
                         //TODO: Add check for 
-                        tmp = new ImagePlus(fname);
-                        if(tmp != null)
-                            dendriteSels.add(tmp);
+                        File tmpFile = new File(fname);//new ImagePlus(fname);
+                        if(tmpFile.exists() && tmpFile.isFile()){
+                            this.convert2geodesic(fname, destPrefix);
+                            //fCount++;
+                            //dendriteSels.add(tmp);
+                            
+                        }
                         else{
                             errFile.add(fname);
-                            System.out.println("Error opening Imagefile : " + fname);
+                            System.out.println("Error opening file : " + fname);
                         }
                     }
 //                    convert2geodesic(dendriteSels,dendfNames);
                     
-                    for (fCount = 0;fCount < dendriteSels.size(); fCount++) {
-                        ImagePlus imp = (ImagePlus) dendriteSels.get(fCount);
-                        String destname = dendfNames[fCount];
-                        if (! errFile.contains(destname)){
-//                            destname = destname.split("\\.")[0];
-//                            destname += "_geo.tiff";
-//                            IJ.saveAsTiff(imp, destname);
-                            
-//                            ImagePlus spineimp = new ImagePlus(spinefNames[fCount]);
-//                            ArrayList tmpArray = new ArrayList();
-//                            tmpArray.add(imp);
-//                            tmpArray.add(spineimp);
-//                            brainImage.add(tmpArray);
-                              this.convert2geodesic(imp, destname);
-                        }
-                        fCount++;
-                    }
+//                    for (fCount = 0;fCount < dendriteSels.size(); fCount++) {
+//                        //ImagePlus imp = (ImagePlus) dendriteSels.get(fCount);
+//                        String destname = dendfNames[fCount];
+//                        if (! errFile.contains(destname)){
+////                            destname = destname.split("\\.")[0];
+////                            destname += "_geo.tiff";
+////                            IJ.saveAsTiff(imp, destname);
+//                            
+////                            ImagePlus spineimp = new ImagePlus(spinefNames[fCount]);
+////                            ArrayList tmpArray = new ArrayList();
+////                            tmpArray.add(imp);
+////                            tmpArray.add(spineimp);
+////                            brainImage.add(tmpArray);
+//                              this.convert2geodesic(dendfNames[fCount], destname);
+//                        }
+//                        fCount++;
+//                    }
                     int activeCount = monitor.size();
                     while(activeCount > 0){
                         for (int count = 0 ; count < activeCount ; count ++){
@@ -146,17 +150,31 @@ public class Spine_Geodesic implements PlugInFilter {
                               activeCount--;
                                 if(activeCount > 0) 
                                     System.out.println("Waiting for "+activeCount+ "threads to end out of " + monitor.size());
-                                else
-                                    System.out.println("All threads have ended");
+                                
                             }
                         }
-                       
-                        try {
+                       try {
                             Thread.sleep(10);
                         } catch (InterruptedException ex) {
                             //Logger.getLogger(Spine_Geodesic.class.getName()).log(Level.SEVERE, null, ex);
                         }
                     }
+                    
+                    System.out.println("All threads have ended");
+                    
+                    int remFiles = dendfNames.length - dendriteSels.size() + errFile.size();
+                    
+                    while(remFiles > 0){
+                       try {
+                            Thread.sleep(100);
+                        } catch (InterruptedException ex) {
+                            //Logger.getLogger(Spine_Geodesic.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                        System.out.println("Waiting for writing " +remFiles + " remaining files");
+                        remFiles = dendfNames.length - dendriteSels.size() + errFile.size();
+                    }
+                    
+                    System.out.println("Out of "+dendfNames.length + " "+errFile.size() +" could not be processed");
                     
 //                    makeMeasurements(brainImage, results);
                     
@@ -166,122 +184,11 @@ public class Spine_Geodesic implements PlugInFilter {
                 
                 
                 
-		// get width and height
-		//width = ip.getWidth();
-		//height = ip.getHeight();
-
-		/*if (showDialog()) {
-			process(ip);
-			image.updateAndDraw();
-		}*/
-                
+		
                 
 	}
 
-	/*private boolean showDialog() {
-		GenericDialog gd = new GenericDialog("Process pixels");
-
-		// default value is 0.00, 2 digits right of the decimal point
-		gd.addNumericField("value", 0.00, 2);
-		gd.addStringField("name", "John");
-
-		gd.showDialog();
-		if (gd.wasCanceled())
-			return false;
-
-		// get entered values
-		value = gd.getNextNumber();
-		name = gd.getNextString();
-
-		return true;
-	}*/
-
-	/**
-	 * Process an image.
-	 * <p>
-	 * Please provide this method even if {@link ij.plugin.filter.PlugInFilter} does require it;
-	 * the method {@link ij.plugin.filter.PlugInFilter#run(ij.process.ImageProcessor)} can only
-	 * handle 2-dimensional data.
-	 * </p>
-	 * <p>
-	 * If your plugin does not change the pixels in-place, make this method return the results and
-	 * change the {@link #setup(java.lang.String, ij.ImagePlus)} method to return also the
-	 * <i>DOES_NOTHING</i> flag.
-	 * </p>
-	 *
-	 * @param image the image (possible multi-dimensional)
-	 */
-	/*public void process(ImagePlus image) {
-		// slice numbers start with 1 for historical reasons
-		for (int i = 1; i <= image.getStackSize(); i++)
-			process(image.getStack().getProcessor(i));
-	}
-
-	// Select processing method depending on image type
-	public void process(ImageProcessor ip) {
-		int type = image.getType();
-		if (type == ImagePlus.GRAY8)
-			process( (byte[]) ip.getPixels() );
-		else if (type == ImagePlus.GRAY16)
-			process( (short[]) ip.getPixels() );
-		else if (type == ImagePlus.GRAY32)
-			process( (float[]) ip.getPixels() );
-		else if (type == ImagePlus.COLOR_RGB)
-			process( (int[]) ip.getPixels() );
-		else {
-			throw new RuntimeException("not supported");
-		}
-	}
-
-	// processing of GRAY8 images
-	public void process(byte[] pixels) {
-		for (int y=0; y < height; y++) {
-			for (int x=0; x < width; x++) {
-				// process each pixel of the line
-				// example: add 'number' to each pixel
-				pixels[x + y * width] += (byte)value;
-			}
-		}
-	}
-
-	// processing of GRAY16 images
-	public void process(short[] pixels) {
-		for (int y=0; y < height; y++) {
-			for (int x=0; x < width; x++) {
-				// process each pixel of the line
-				// example: add 'number' to each pixel
-				pixels[x + y * width] += (short)value;
-			}
-		}
-	}
-
-	// processing of GRAY32 images
-	public void process(float[] pixels) {
-		for (int y=0; y < height; y++) {
-			for (int x=0; x < width; x++) {
-				// process each pixel of the line
-				// example: add 'number' to each pixel
-				pixels[x + y * width] += (float)value;
-			}
-		}
-	}
-
-	// processing of COLOR_RGB images
-	public void process(int[] pixels) {
-		for (int y=0; y < height; y++) {
-			for (int x=0; x < width; x++) {
-				// process each pixel of the line
-				// example: add 'number' to each pixel
-				pixels[x + y * width] += (int)value;
-			}
-		}
-	}
-
-	public void showAbout() {
-		IJ.showMessage("ProcessPixels",
-			"a template for processing each pixel of an image"
-		);
-	}
+	
 
 	/**
 	 * Main method for debugging.
@@ -326,8 +233,15 @@ public class Spine_Geodesic implements PlugInFilter {
          * @param img
          * @param fname 
          */
-        private void convert2geodesic(ImagePlus img,String fname){
-            
+        private void convert2geodesic(String sourceImg,String destsuffix){
+            ImagePlus img = new ImagePlus(sourceImg);
+            if(img == null ){
+                this.errFile.add(sourceImg);
+                return;
+            }
+            ArrayList success, failure;
+            success = this.dendriteSels;
+            failure = this.errFile;
             SwingWorker worker = new SwingWorker(){
                 @Override
                 protected Object doInBackground() throws Exception {
@@ -454,12 +368,14 @@ public class Spine_Geodesic implements PlugInFilter {
                             }
                             ImagePlus out = new ImagePlus();
                             out.setStack(resStk);
-                            boolean fileStatus = IJ.saveAsTiff(out, fname+"_geo");
+                            boolean fileStatus = IJ.saveAsTiff(out, sourceImg+ destsuffix);
                             if(fileStatus){
-                                System.out.println("File :"+fname+" processed");
+                                System.out.println("File :"+sourceImg+" processed");
+                                success.add(sourceImg);
                             }
                             else{
-                                System.out.println("Error writing File :"+fname);
+                                System.out.println("Error writing File :"+sourceImg);
+                                failure.add(sourceImg);
                             }
                             //img.setStack(resStk);
                 //            out.setStack(markStk);
@@ -468,7 +384,7 @@ public class Spine_Geodesic implements PlugInFilter {
                 }
                 
             };
-            Thread tp = new Thread(worker,"gesodesic");
+            Thread tp = new Thread(worker,"gesodesic_"+threadCount);
             //worker.execute();
             tp.start();
             monitor.add(tp);
