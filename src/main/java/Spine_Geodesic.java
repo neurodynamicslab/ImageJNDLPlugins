@@ -454,11 +454,17 @@ public class Spine_Geodesic implements PlugInFilter {
                             }
                             ImagePlus out = new ImagePlus();
                             out.setStack(resStk);
-                            IJ.saveAsTiff(out, fname+"_geo");
-                            img.setStack(resStk);
+                            boolean fileStatus = IJ.saveAsTiff(out, fname+"_geo");
+                            if(fileStatus){
+                                System.out.println("File :"+fname+" processed");
+                            }
+                            else{
+                                System.out.println("Error writing File :"+fname);
+                            }
+                            //img.setStack(resStk);
                 //            out.setStack(markStk);
                 //            IJ.saveAsTiff(out, fname+"_mrk");
-                 return null;
+                    return null;
                 }
                 
             };
