@@ -30,6 +30,10 @@ import inra.ijpb.binary.geodesic.GeodesicDistanceTransform3D;
 import inra.ijpb.binary.geodesic.GeodesicDistanceTransform3DFloat;
 import java.awt.Point;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.SwingWorker;
@@ -402,6 +406,8 @@ public class Spine_Geodesic implements PlugInFilter {
      * @param results1 
      */
         private void makeMeasurements() {
+            
+            String[] dendFileNames,geoFileNames,measFileNames;
         
             MultiFileDialog dendFiles = new MultiFileDialog (null, true);
             MultiFileDialog geoFiles = new MultiFileDialog(null,true);
@@ -409,13 +415,56 @@ public class Spine_Geodesic implements PlugInFilter {
             
             dendFiles.setTitle("Select files with dendrite ID");
             geoFiles.setTitle("Select the files with geodesic distances");
-            measurements.setTitle("Select the file with co-ordinates");
+            measurements.setTitle("Select the file with co-ordinates");                     //the file format for the 
             
             dendFiles.setVisible(true);
+            dendFileNames = dendFiles.getSelectionArray();
+            
             geoFiles.setVisible(true);
+            geoFileNames = geoFiles.getSelectionArray();
+            
             measurements.setVisible(true);
+            measFileNames =  measurements.getSelectionArray();
+            
+            if( dendFileNames.length != geoFileNames.length || geoFileNames.length != measFileNames.length)
+                return;
+            int nFiles = geoFileNames.length;
+            ImagePlus dendID, geoImg;
+            FileReader cordFile ;
+            FileWriter outFile;
+            try {
+                for(int count = 0 ; count < nFiles ; count ++){
+
+
+                        dendID = new ImagePlus(dendFileNames[count]);
+                        geoImg = new ImagePlus(geoFileNames[count]);
+
+                        cordFile = new FileReader(measFileNames[count]);
+                        outFile =  new FileWriter(measFileNames[count].split(".")[0]+"_res.txt");
+
+                        Roi[] rois  = getRois(cordFile);
+                        ArrayList<String> result = doMeasurement(rois,dendID,geoImg);
+                        writeResult(result,outFile);
+
+                }
+            }catch (FileNotFoundException ex) {
+                    Logger.getLogger(Spine_Geodesic.class.getName()).log(Level.SEVERE, null, ex);
+            }catch (IOException ex) {
+                Logger.getLogger(Spine_Geodesic.class.getName()).log(Level.SEVERE, null, ex);
+            }
             
             
-            
+    }
+
+    private Roi[] getRois(FileReader cordFile) {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+
+    private ArrayList<String> doMeasurement(Roi[] rois, ImagePlus dendID, ImagePlus geoImg) {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+
+    private void writeResult(ArrayList<String> result, FileWriter outFile) {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 }
