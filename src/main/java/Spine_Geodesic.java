@@ -391,118 +391,31 @@ public class Spine_Geodesic implements PlugInFilter {
             threadCount++;
         }
 
-//    private void convert2geodesic(ArrayList dendriteSels, String[] fname) {
-//       
-//                ThresholdToSelection roiCreator = new ThresholdToSelection();
-//                ChamferMask3D chamferMask;
-//                chamferMask =  ChamferMask3D.SVENSSON_3_4_5_7;
-//                
-//                for (Object o : dendriteSels){                              //run thru the images
-//                    ImagePlus tmp = (ImagePlus)o;
-//                    ImagePlus marker = tmp.createImagePlus();
-//                    
-//                    
-////                    marker.setProcessor(tmp.getProcessor().duplicate().convertToByteProcessor());
-////                    
-////                    ByteProcessor markerProcessor = (ByteProcessor)marker.getProcessor();
-////                    markerProcessor.set(0);
-//                    //get the minimum and maximum intensity to identify the number of objects
-//                    //select out individual intensities from min to max
-//                    //identify the start pixel (left top ?) as marker for each object
-//                    //generate marker image (invert the mask and set the marker pixel as 1)
-//                    //run the geodesic
-//                    
-//                    StackStatistics stat = new StackStatistics(tmp);
-//                   
-//                    double lowerBnd = (stat.min == 0 ) ? 1 : stat.min;
-//                    double upperBnd = stat.max;
-//                    //double dendriteNo = upperBnd - lowerBnd;
-//                    int stackSize = tmp.getStackSize();
-//                   
-//                    ImageStack stack = tmp.getStack();
-//                    ImageStack resStack = stack.duplicate();
-//                    ImageStack markerStk = stack.duplicate();
-//                    marker.setStack("Marker", markerStk);
-//                    for(int s = 1 ; s <= markerStk.getSize(); s ++){
-//                        markerStk.getProcessor(s).convertToByteProcessor();
-//                        markerStk.getProcessor(s).set(0);
-//                    }
-//                    if( stack.getSize() != markerStk.getSize()){
-//                    
-//                        System.out.println("Internal Error ! Raw stack is not mathcing the marker" + stack.getSize()+" " +markerStk.getSize());
-//                        return;
-//                    }
-//                    Rectangle rect = new Rectangle(0,0,0,0);//,closeRect = new Rectangle(0,0,0,0);
-//                    Point closePoint = new Point(0,0);
-//                    float curSqDist, minSqDist, maxSqDist = tmp.getHeight()*tmp.getHeight() + tmp.getWidth()*tmp.getWidth();
-//                    int minSqinSlice = 1;
-//                    ImageProcessor tempPro;
-//                    ShapeRoi overalRoi = null;
-//                    
-//                    for(long dendCount = (long)lowerBnd ; dendCount <= upperBnd ; dendCount++){
-//                      
-////                        ImageProcessor ip = tmp.getProcessor().duplicate();
-////                      //tmp.show();
-////                      //this.wait(100);
-////                        ip.setThreshold(dendCount, dendCount);
-//                        minSqDist = maxSqDist;
-////                      ImageStatistics s = ip.getStatistics();
-////                      System.out.println(""+s.area+ " M = " +s.mean);
-////                      //IJ.run("Create Selection");
-////                      ByteProcessor mask = ip.createMask();
-//                        boolean roiSet = false;
-//                        for(int sliceNo = 1 ; sliceNo <= stackSize ; sliceNo++){
-//                            tempPro = stack.getProcessor(sliceNo).duplicate();
-//                            tempPro.setThreshold(dendCount, dendCount);
-//                            
-//                            Roi roi =  roiCreator.convert(tempPro);
-//                            
-//                            if(roi != null){
-//                                //rect = roi.getBounds();
-//                                //find a start point by finding the minimum y and minimum x. 
-//                                double [] des = roi.getFeretValues();
-//                                int x = (int)des[8];
-//                                int y = (int)des[9];
-//                                curSqDist = x*x + y*y ;
-//                                if(curSqDist < minSqDist){
-//                                    minSqDist = curSqDist;
-//                                    closePoint = new Point(x,y);
-//                                    minSqinSlice = sliceNo;
-//                                }
-//                                if(overalRoi == null)
-//                                    overalRoi = new ShapeRoi(roi) ;
-//                                else 
-//                                    overalRoi.or(new ShapeRoi (roi));
-//                                roiSet = true;
-//                            }
-//                            //System.out.println(""+closeRect.x+ " M = " +closeRect.y);
-//                        }
-//                        if(roiSet){
-//                            System.out.println(""+closePoint.x+ " M = " +closePoint.y + "in Slice# "+ minSqinSlice + "ObjID " + dendCount);
-//                            marker.getStack().getProcessor(minSqinSlice).set(closePoint.x, closePoint.y, 255);
-//                      //estimate the start pixel and set that pixelvalue to 1 in marker image
-//                        }else{
-//                            System.out.println("None" + "ObjID " + dendCount);
-//                        }
-//                   }
-//                  // marker.show();
-//                   GeodesicDistanceTransform3D algo = new GeodesicDistanceTransform3DFloat(chamferMask, true);
-//                   DefaultAlgoListener.monitor(algo);
-//    	
-//
-//                    // Compute distance on specified images
-//                    
-//                    ImageStack result = algo.geodesicDistanceMap(marker.getImageStack(), tmp.getImageStack()); 
-//                    tmp.setStack(result);
-//                    IJ.saveAsTiff(tmp,fname[0]+"_geo" );
-//                    //IJ.saveAsTiff(marker,fname[0]+"mark");
-//                       //(marker.getImageStack(),tmp.getImageStack());
-//                        //use the marker stack and tmp to get the geodesic
-//                        //savegeodesic
-//                }
-//    }
+//  
 
-    private void makeMeasurements(ArrayList<ArrayList<ImagePlus>> brainImage, ArrayList results1) {
-        //throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    /**
+     * A function to estimate the geodesic distance of the spines.
+     * Logic: Open the images with i) dendrite identities ii) dendrite geodesic and iii) table with spine centers (.csv /.txt files).
+     * Generate ROI from the object X Y and Z )co -ordinates (from spine centers).
+     * Measure the intensity of these ROIs in dendrite identities and in geodesics images.These along with X,y,Z co-ordinates need to be written to the output file (.csv)
+     * @param brainImage
+     * @param results1 
+     */
+        private void makeMeasurements() {
+        
+            MultiFileDialog dendFiles = new MultiFileDialog (null, true);
+            MultiFileDialog geoFiles = new MultiFileDialog(null,true);
+            MultiFileDialog measurements = new MultiFileDialog(null,true);
+            
+            dendFiles.setTitle("Select files with dendrite ID");
+            geoFiles.setTitle("Select the files with geodesic distances");
+            measurements.setTitle("Select the file with co-ordinates");
+            
+            dendFiles.setVisible(true);
+            geoFiles.setVisible(true);
+            measurements.setVisible(true);
+            
+            
+            
     }
 }
