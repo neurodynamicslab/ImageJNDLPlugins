@@ -29,6 +29,7 @@ import inra.ijpb.binary.distmap.ChamferMask3D;
 import inra.ijpb.binary.geodesic.GeodesicDistanceTransform3D;
 import inra.ijpb.binary.geodesic.GeodesicDistanceTransform3DFloat;
 import java.awt.Point;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -81,6 +82,10 @@ public class Spine_Geodesic implements PlugInFilter {
 	public void run(ImageProcessor ip) {
                 
                 //Open a multi file doalog and get a list of files to work on.
+                
+                int option = javax.swing.JOptionPane.showConfirmDialog(null,"Do you to measure ?");
+                if(option == javax.swing.JOptionPane.OK_OPTION)
+                    this.makeMeasurements();
                 String[] dendfNames,spinefNames;
                 boolean errStatus;
                
@@ -440,9 +445,9 @@ public class Spine_Geodesic implements PlugInFilter {
                         geoImg = new ImagePlus(geoFileNames[count]);
 
                         cordFile = new FileReader(measFileNames[count]);
-                        outFile =  new FileWriter(measFileNames[count].split(".")[0]+"_res.txt");
+                        outFile =  new FileWriter(measFileNames[count].split("\\.")[0]+"_res.txt");
 
-                        Roi[] rois  = getRois(cordFile);
+                        ArrayList<Roi> rois  = getRois(cordFile);
                         ArrayList<String> result = doMeasurement(rois,dendID,geoImg);
                         writeResult(result,outFile);
 
@@ -456,17 +461,64 @@ public class Spine_Geodesic implements PlugInFilter {
             
     }
 
-    private Roi[] getRois(FileReader cordFile) {
-//        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-        return null;
+    private ArrayList<Roi> getRois(FileReader cordFile) {
+            
+            ArrayList rois = new ArrayList();
+            try {
+                //        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+                BufferedReader reader = new BufferedReader(cordFile);
+                String ln = reader.readLine();
+                System.out.println(ln);
+                if(ln == null )
+                    return null;
+                while( (ln = reader.readLine()) != null){
+                    float xf =  Float.parseFloat(ln.split(",")[8]);
+                    float yf =  Float.parseFloat(ln.split(",")[9]);
+                    float zf =  Float.parseFloat(ln.split(",")[10]);
+                    int position = zf < 1 ? 1 : Math.round(zf);
+                    Roi roi = new Roi(xf,yf,1,1);
+                    roi.setPosition(position);
+                    rois.add(roi);
+                }               
+            } catch (IOException ex) {
+                Logger.getLogger(Spine_Geodesic.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            
+            return rois;
     }
 
-    private ArrayList<String> doMeasurement(Roi[] rois, ImagePlus dendID, ImagePlus geoImg) {
+    private ArrayList<String> doMeasurement(ArrayList<Roi> rois, ImagePlus dendID, ImagePlus geoImg) {
 //        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-        return null;
+          ArrayList Output = new ArrayList();
+          String result;
+          Rectangle rect;
+          int count = 1 ,slice = 0;
+          
+          for( Roi roi : rois){
+              rect = roi.getBounds();
+              slice  = roi.getPosition();
+ //             slice = slice <= dendID.getNSlices() ? slice : slice - 1;             //should not be required
+              
+              float ID  = dendID.getStack().getProcessor(slice).getPixelValue(rect.x, rect.y);
+              float dist = geoImg.getStack().getProcessor(slice).getPixelValue(rect.x,rect.y);
+              
+              result = count +"\t" +rect.x + "\t" + rect.y +"\t"+ slice + "\t" + ID + "\t" + dist + "\n";
+              Output.add(result);
+          }
+          return Output;
     }
 
     private void writeResult(ArrayList<String> result, FileWriter outFile) {
 //        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+
+          
+              try {
+                  for(String ln : result)
+                        outFile.write(ln);
+                  outFile.close();
+              } catch (IOException ex) {
+                  Logger.getLogger(Spine_Geodesic.class.getName()).log(Level.SEVERE, null, ex);
+              }
+              
     }
 }
