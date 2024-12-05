@@ -537,14 +537,18 @@ public class Spine_Geodesic implements PlugInFilter {
               
     }
     private void writeSpineDist(File out){
-        FileWriter outFile = new FileWriter(out);
+        
         Iterator iter = Dendrites.entrySet().iterator();
         Map.Entry entry;
+        ArrayList<Float> arrayTowrite;
         try{
+            FileWriter outFile = new FileWriter(out);
             while(iter.hasNext()){
                 entry = (Map.Entry<Integer, ArrayList>)iter.next();
-                
-                outFile.write(Collections.sort((ArrayList)entry.getValue()));
+                arrayTowrite = (ArrayList)entry.getValue();
+                Collections.sort(arrayTowrite);
+                for(Float val : arrayTowrite)
+                    outFile.write(""+(Integer)entry.getKey()+"\t"+val+"\n");
                         }
         }catch(IOException ex){
             
