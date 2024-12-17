@@ -35,6 +35,11 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.SwingWorker;
@@ -61,6 +66,10 @@ public class Spine_Geodesic implements PlugInFilter {
         ArrayList<Roi> selectionRois;
         ArrayList <ArrayList<ImagePlus>> brainImage = new ArrayList(); ///*this has 2 elements only one for dendrite sel image and other for coresponding spine selection*/
         ArrayList/*<JTable or JList or ArrayList<String>>*/ results = new ArrayList(); // for storing the measurements from the images
+        Integer dendID = 0;
+        ArrayList dendDist = new ArrayList();
+        
+        ConcurrentHashMap Dendrites = new ConcurrentHashMap();
         
         MultiFileDialog FD = new MultiFileDialog(null,true);
 
@@ -493,7 +502,7 @@ public class Spine_Geodesic implements PlugInFilter {
           String result;
           Rectangle rect;
           int count = 1 ,slice = 0;
-          
+          ArrayList denDist;
           for( Roi roi : rois){
               rect = roi.getBounds();
               slice  = roi.getPosition();
@@ -503,6 +512,12 @@ public class Spine_Geodesic implements PlugInFilter {
               float dist = geoImg.getStack().getProcessor(slice).getPixelValue(rect.x,rect.y);
               
               result = count +"\t" +rect.x + "\t" + rect.y +"\t"+ slice + "\t" + ID + "\t" + dist + "\n";
+              //Add the dend ID and dist to 
+              denDist = (ArrayList)Dendrites.get(ID);
+              if(denDist == null)
+                  denDist = new ArrayList();
+              denDist.add(dist);
+              Dendrites.put(ID,denDist);
               Output.add(result);
           }
           return Output;
@@ -511,7 +526,7 @@ public class Spine_Geodesic implements PlugInFilter {
     private void writeResult(ArrayList<String> result, FileWriter outFile) {
 //        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
 
-          
+              
               try {
                   for(String ln : result)
                         outFile.write(ln);
@@ -520,5 +535,23 @@ public class Spine_Geodesic implements PlugInFilter {
                   Logger.getLogger(Spine_Geodesic.class.getName()).log(Level.SEVERE, null, ex);
               }
               
+    }
+    private void writeSpineDist(File out){
+        
+        Iterator iter = Dendrites.entrySet().iterator();
+        Map.Entry entry;
+        ArrayList<Float> arrayTowrite;
+        try{
+            FileWriter outFile = new FileWriter(out);
+            while(iter.hasNext()){
+                entry = (Map.Entry<Integer, ArrayList>)iter.next();
+                arrayTowrite = (ArrayList)entry.getValue();
+                Collections.sort(arrayTowrite);
+                for(Float val : arrayTowrite)
+                    outFile.write(""+(Integer)entry.getKey()+"\t"+val+"\n");
+                        }
+        }catch(IOException ex){
+            
+        }
     }
 }
