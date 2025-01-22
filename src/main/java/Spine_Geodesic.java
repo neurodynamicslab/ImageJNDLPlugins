@@ -43,6 +43,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.SwingWorker;
+
 /**
  * A plugin for measuring the inter spine distances from a geodesic map. Each of the dendrite is
  * is identified by a unique number. The spine image is used to generate measurement mask. This is mask is later used on the 
@@ -167,7 +168,7 @@ public class Spine_Geodesic implements PlugInFilter {
                             if(!monitor.get(count).isAlive()){
                               activeCount--;
                                 if(activeCount > 0) 
-                                    System.out.println("Waiting for "+activeCount+ "threads to end out of " + monitor.size());
+                                    System.out.println("Waiting for "+activeCount+ " threads to end out of " + monitor.size());
                                 
                             }
                         }
@@ -260,6 +261,19 @@ public class Spine_Geodesic implements PlugInFilter {
             ArrayList success, failure;
             success = this.dendriteSels;
             failure = this.errFile;
+            long availableMem = java.lang.Runtime.getRuntime().freeMemory();
+            double fileSz = img.getSizeInBytes();
+            
+            while (availableMem < 2 * fileSz){
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException ex) {
+                    //Logger.getLogger(Spine_Geodesic.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                availableMem = java.lang.Runtime.getRuntime().freeMemory();
+                System.out.println("Waiting for memory to clear.."+ availableMem + "File Sz" + fileSz);
+            }
+            
             SwingWorker worker = new SwingWorker(){
                 @Override
                 protected Object doInBackground() throws Exception {
@@ -427,9 +441,9 @@ public class Spine_Geodesic implements PlugInFilter {
             MultiFileDialog geoFiles = new MultiFileDialog(null,true);
             MultiFileDialog measurements = new MultiFileDialog(null,true);
             
-            dendFiles.setTitle("Select files with dendrite ID");
-            geoFiles.setTitle("Select the files with geodesic distances");
-            measurements.setTitle("Select the file with co-ordinates");                     //the file format for the 
+            dendFiles.setTitle("Select image files with dendrite ID");
+            geoFiles.setTitle("Select the image files with geodesic distances");
+            measurements.setTitle("Select the csv file with co-ordinates");                     //the file format for the 
             
             dendFiles.setVisible(true);
             dendFileNames = dendFiles.getSelectionArray();
