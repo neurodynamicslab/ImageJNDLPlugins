@@ -85,7 +85,12 @@
 	 <maven.compiler.source>22</maven.compiler.source>
 	 <maven.compiler.target>22</maven.compiler.target>
 	</properties>
-
+        <repositories>
+            <repository>
+                <id>fiji</id>
+                <url>https://maven.scijava.org/content/groups/public/</url>
+            </repository>
+        </repositories>
 	<dependencies>
 		<dependency>
 			<groupId>net.imagej</groupId>
@@ -96,11 +101,23 @@
                         <artifactId>MorphoLibJ_</artifactId>
                         <version>1.6.3</version>
                 </dependency>
-	 <dependency>
-	  <groupId>gov.nist.math</groupId>
-	  <artifactId>jama</artifactId>
-	  <version>1.0.3</version>
-	  <type>jar</type>
-	 </dependency>
+                 <dependency>
+                  <groupId>gov.nist.math</groupId>
+                  <artifactId>jama</artifactId>
+                  <version>1.0.3</version>
+                  <type>jar</type>
+                 </dependency>
+                 <dependency>
+                     <groupId>sc.fiji</groupId>
+                     <artifactId>Skeletonize3D_</artifactId>
+                         <version>2.1.1</version>
+                         <type>jar</type>
+                 </dependency>
+                 <dependency>
+                     <groupId>sc.fiji</groupId>
+                     <artifactId>AnalyzeSkeleton_</artifactId>
+                     <version>3.4.2</version>
+                     <type>jar</type>
+                 </dependency>
 	</dependencies>
 </project>

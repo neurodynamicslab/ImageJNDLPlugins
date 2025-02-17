@@ -22,6 +22,13 @@ import javax.swing.*;
  * @author Every one
  */
 public class MultiFileDialog extends javax.swing.JDialog {
+
+    /**
+     * @return the FileSelDialog
+     */
+    public javax.swing.JFileChooser getFileSelDialog() {
+        return FileSelDialog;
+    }
     private File[] Selection = null;
     private DefaultListModel FileListData = new DefaultListModel();
     
@@ -31,7 +38,7 @@ public class MultiFileDialog extends javax.swing.JDialog {
     private final int SUCCESS = 2;
     private final int CLOSE = -1;
     private final int error = -2;
-    private File startDirectory;
+    private static File startDirectory;
     
     /** Creates new form MultiFileDialog
      * @param parent
@@ -47,12 +54,20 @@ public class MultiFileDialog extends javax.swing.JDialog {
             }
        // System.out.print(startLocation.getAbsolutePath()+"\tIs it a directory"+startLocation.isDirectory()+ "\n");
         this.setStartDirectory(startLocation);
+        
+        
         initComponents();
-       // this.FileSelDialog = new JFileChooser();
+        //this.FileSelDialog = new JFileChooser();
         //this.FileSelDialog.setCurrentDirectory(startDirectory);
         //this.setVisible(true);
+        if(startDirectory != null){
+            this.getFileSelDialog().setCurrentDirectory(startDirectory);
+            System.out.println("Set start directory to" + startDirectory.getAbsolutePath());
+        }
         FileList.setModel(FileListData);
+        
     }
+    
     /**
      * Overloaded Constructor
      * @param parent
@@ -79,6 +94,7 @@ public class MultiFileDialog extends javax.swing.JDialog {
         OpenButton = new javax.swing.JButton();
         ExitButton = new javax.swing.JButton();
         jSeparator1 = new javax.swing.JSeparator();
+        jCheckBox_setStart = new javax.swing.JCheckBox();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setTitle("Select Multiple Files in different directories");
@@ -135,6 +151,8 @@ public class MultiFileDialog extends javax.swing.JDialog {
 
         jSeparator1.setAutoscrolls(true);
 
+        jCheckBox_setStart.setText("Set as start directory");
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -154,7 +172,10 @@ public class MultiFileDialog extends javax.swing.JDialog {
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(OpenButton, javax.swing.GroupLayout.PREFERRED_SIZE, 133, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(ExitButton, javax.swing.GroupLayout.PREFERRED_SIZE, 127, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addComponent(ExitButton, javax.swing.GroupLayout.PREFERRED_SIZE, 127, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(18, 18, 18)
+                                .addComponent(jCheckBox_setStart, javax.swing.GroupLayout.PREFERRED_SIZE, 146, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(0, 0, Short.MAX_VALUE))
                             .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 687, Short.MAX_VALUE)
                             .addComponent(jSeparator1))
                         .addContainerGap())))
@@ -171,7 +192,8 @@ public class MultiFileDialog extends javax.swing.JDialog {
                     .addComponent(AddButton)
                     .addComponent(RemoveButton)
                     .addComponent(OpenButton, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(ExitButton))
+                    .addComponent(ExitButton)
+                    .addComponent(jCheckBox_setStart))
                 .addGap(18, 18, 18)
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 85, Short.MAX_VALUE)
                 .addContainerGap())
@@ -192,7 +214,7 @@ public class MultiFileDialog extends javax.swing.JDialog {
         this.addButtonAction();
     }
     public void addButtonAction(){
-        Selection =  FileSelDialog.getSelectedFiles();
+        Selection =  getFileSelDialog().getSelectedFiles();
         if(Selection.length != 0)
             for ( int count = 0 ; count < Selection.length ; count++ ){
                 String path = new String(Selection[count].getPath());
@@ -228,11 +250,16 @@ public class MultiFileDialog extends javax.swing.JDialog {
                                             // depending the length of selection list
         }
         this.setVisible(false);
+        
+        if(this.jCheckBox_setStart.isSelected())
+            this.startDirectory = new File (this.getDirectory());
                 // TODO add your handling code here:
 }//GEN-LAST:event_OpenButtonActionPerformed
 
     private void ExitButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ExitButtonActionPerformed
         //this.setVisible(false);
+        if(this.jCheckBox_setStart.isSelected())
+            this.startDirectory = new File (this.getDirectory());
         this.dispose();
 
         // TODO add your handling code here:
@@ -312,6 +339,7 @@ public String  setCloseAction(ActionListener Instance, String Cmd){
     private javax.swing.JFileChooser FileSelDialog;
     private javax.swing.JButton OpenButton;
     private javax.swing.JButton RemoveButton;
+    private javax.swing.JCheckBox jCheckBox_setStart;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JSeparator jSeparator1;
     // End of variables declaration//GEN-END:variables
@@ -322,7 +350,7 @@ public String  setCloseAction(ActionListener Instance, String Cmd){
      */
     public String getDirectory() {
         //throw new UnsupportedOperationException("Not yet implemented");
-        return FileSelDialog.getCurrentDirectory().getName();
+        return getFileSelDialog().getCurrentDirectory().getAbsolutePath();
     }
 
     /**

@@ -20,6 +20,7 @@ import ij.process.Blitter;
 import ij.process.ByteProcessor;
 import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
+import ij.process.StackConverter;
 import ij.process.StackStatistics;
 import java.awt.Rectangle;
 import java.util.ArrayList;
@@ -36,13 +37,17 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.SwingWorker;
+import sc.fiji.analyzeSkeleton.AnalyzeSkeleton_;
+import sc.fiji.analyzeSkeleton.SkeletonResult;
+
+import sc.fiji.skeletonize3D.*;
 
 /**
  * A plugin for measuring the inter spine distances from a geodesic map. Each of the dendrite is
@@ -51,10 +56,7 @@ import javax.swing.SwingWorker;
  */
 public class Spine_Geodesic implements PlugInFilter {
 	protected ImagePlus image;
-
-	// image property members
-	private int width;
-	private int height;
+    // image property members
 
 	// plugin parameters
 	public double value;
@@ -62,18 +64,19 @@ public class Spine_Geodesic implements PlugInFilter {
         
         ArrayList <Thread> monitor = new ArrayList();
         int threadCount;
-        ArrayList<ImagePlus> dendriteSels, spineSels;
+        ArrayList<ImagePlus> dendriteSels;
         ArrayList<String> errFile;
-        ArrayList<Roi> selectionRois;
-        ArrayList <ArrayList<ImagePlus>> brainImage = new ArrayList(); ///*this has 2 elements only one for dendrite sel image and other for coresponding spine selection*/
-        ArrayList/*<JTable or JList or ArrayList<String>>*/ results = new ArrayList(); // for storing the measurements from the images
-        Integer dendID = 0;
-        ArrayList dendDist = new ArrayList();
+    ///*this has 2 elements only one for dendrite sel image and other for coresponding spine selection*/
+    /*<JTable or JList or ArrayList<String>>*/
+    // for storing the measurements from the images
         
         ConcurrentHashMap Dendrites = new ConcurrentHashMap();
         
+        ArrayList <SpineDescriptor> SpineData = new ArrayList();
         MultiFileDialog FD = new MultiFileDialog(null,true);
-
+        static String startDirectory;
+        int roiWidth = 2 ;// ROI width over which to search for max the geodesic distance
+        private final boolean inclDepth = true; //set this to true for searching for max geodesic dist in Z
         
         
 
@@ -166,12 +169,13 @@ public class Spine_Geodesic implements PlugInFilter {
                     while(activeCount > 0){
                         for (int count = 0 ; count < activeCount ; count ++){
                             if(!monitor.get(count).isAlive()){
-                              activeCount--;
-                                if(activeCount > 0) 
-                                    System.out.println("Waiting for "+activeCount+ " threads to end out of " + monitor.size());
-                                
+                              activeCount--;                            
+                            }else{
+                                System.out.println(monitor.get(count).getName() + "is alive");
                             }
                         }
+                        if(activeCount > 0) 
+                                    System.out.println("Waiting for "+activeCount+ " threads to end out of " + monitor.size());
                        try {
                             Thread.sleep(10);
                         } catch (InterruptedException ex) {
@@ -196,6 +200,7 @@ public class Spine_Geodesic implements PlugInFilter {
                     System.out.println("Out of "+dendfNames.length + " "+errFile.size() +" could not be processed");
                     
 //                    makeMeasurements(brainImage, results);
+                    
                     
                 }
                
@@ -262,16 +267,18 @@ public class Spine_Geodesic implements PlugInFilter {
             success = this.dendriteSels;
             failure = this.errFile;
             long availableMem = java.lang.Runtime.getRuntime().freeMemory();
+            long ijMem = IJ.maxMemory() - IJ.currentMemory();
             double fileSz = img.getSizeInBytes();
-            
-            while (availableMem < 2 * fileSz){
+            System.out.println("Available Memory is :" + ijMem + "File size is:" + fileSz);
+            while (ijMem < 2 * fileSz){
                 try {
                     Thread.sleep(500);
                 } catch (InterruptedException ex) {
                     //Logger.getLogger(Spine_Geodesic.class.getName()).log(Level.SEVERE, null, ex);
                 }
-                availableMem = java.lang.Runtime.getRuntime().freeMemory();
-                System.out.println("Waiting for memory to clear.."+ availableMem + "File Sz" + fileSz);
+                System.gc();
+                ijMem = IJ.maxMemory() - IJ.currentMemory();
+                System.out.println("Waiting for memory to clear.."+ ijMem + " File Sz : " + (long)fileSz  + "Diff : " + (ijMem - fileSz));
             }
             
             SwingWorker worker = new SwingWorker(){
@@ -435,45 +442,101 @@ public class Spine_Geodesic implements PlugInFilter {
      */
         private void makeMeasurements() {
             
+            
             String[] dendFileNames,geoFileNames,measFileNames;
         
             MultiFileDialog dendFiles = new MultiFileDialog (null, true);
-            MultiFileDialog geoFiles = new MultiFileDialog(null,true);
-            MultiFileDialog measurements = new MultiFileDialog(null,true);
-            
             dendFiles.setTitle("Select image files with dendrite ID");
-            geoFiles.setTitle("Select the image files with geodesic distances");
-            measurements.setTitle("Select the csv file with co-ordinates");                     //the file format for the 
+            File start = null;                    
             
+            if (startDirectory != null)
+                dendFiles.setStartDirectory(new File(startDirectory));
             dendFiles.setVisible(true);
             dendFileNames = dendFiles.getSelectionArray();
+            startDirectory = dendFiles.getDirectory();
+            start = new File(startDirectory);
+           
+            MultiFileDialog geoFiles = new MultiFileDialog(null,true,start);
+            MultiFileDialog measurements = new MultiFileDialog(null,true,start);
             
+            geoFiles.setTitle("Select the image files with geodesic distances");
+            measurements.setTitle("Select the csv file with co-ordinates");
+            
+            geoFiles.getFileSelDialog().setCurrentDirectory(start);
             geoFiles.setVisible(true);
             geoFileNames = geoFiles.getSelectionArray();
             
+            measurements.getFileSelDialog().setCurrentDirectory(start);
             measurements.setVisible(true);
             measFileNames =  measurements.getSelectionArray();
             
             if( dendFileNames.length != geoFileNames.length || geoFileNames.length != measFileNames.length)
                 return;
             int nFiles = geoFileNames.length;
-            ImagePlus dendID, geoImg;
+            ImagePlus dendID, geoImg, sklImg;
+            String [] sklFileNames = new String[nFiles];
             FileReader cordFile ;
             FileWriter outFile;
+            FileWriter resFile,sumFile;
             try {
                 for(int count = 0 ; count < nFiles ; count ++){
 
 
                         dendID = new ImagePlus(dendFileNames[count]);
                         geoImg = new ImagePlus(geoFileNames[count]);
-
+                        
+                        String rootName = measFileNames[count].split("\\.")[0];
                         cordFile = new FileReader(measFileNames[count]);
-                        outFile =  new FileWriter(measFileNames[count].split("\\.")[0]+"_res.txt");
+                        outFile =  new FileWriter(rootName+"_res.txt");
+                        resFile = new FileWriter(rootName+"_skl.txt");
+                        sumFile = new FileWriter(rootName+"_summary.txt");
+                        
+                        
+                        
+                        //dendID.show();
+                        ImagePlus temp = dendID.duplicate();
+                        StackConverter converter = new StackConverter(temp);
+                        converter.convertToGray8();
+                        
+                        Skeletonize3D_ skeleton = new Skeletonize3D_();
+                        skeleton.setup("", temp);
+                        skeleton.run(temp.getProcessor());
+                        
+                        AnalyzeSkeleton_ analyser = new AnalyzeSkeleton_();
+                        analyser.setup("", temp);
+                        SkeletonResult resultSkl = analyser.run(AnalyzeSkeleton_.NONE, false,false,null, true, false);
+                        int nTrees = resultSkl.getNumOfTrees();
+                        String outPut = "";
+                        int[] totalVoxels   = resultSkl.calculateNumberOfVoxels();
+                        int[] nBranches     = resultSkl.getBranches();
+                        double[] aveLeng    = resultSkl.getAverageBranchLength();
+                        int[] nJunctions    = resultSkl.getJunctions();
+                        
+                        for(int tCount = 0 ; tCount < nTrees ; tCount++){
+                            
+                            outPut  += tCount + "\t";
+                            
+                            outPut += totalVoxels[tCount] + "\t";
+                            outPut += nBranches[tCount] +"\t";
+                            outPut += aveLeng[tCount] + "\t";
+                            outPut += nJunctions[tCount] +"\t";
+                            outPut += nBranches[tCount]*aveLeng[tCount]+"\n";
+                            
+                        }
+                        System.out.print("Finished the skeleton");
+                        resFile.write("TreeID\tTotalVoxels\tnBranches\tAveLength\tnJunctions\tTotLen\n");
+                        resFile.write(outPut);
+                        resFile.close();
+                        //temp.show();
+                        
 
                         ArrayList<Roi> rois  = getRois(cordFile);
+                        System.out.print("Finished reading ROIs. There are "+ rois.size()+" spines \n");
                         ArrayList<String> result = doMeasurement(rois,dendID,geoImg);
                         writeResult(result,outFile);
-
+                        outFile.close();
+                        createSummary(sumFile);
+                        sumFile.close();
                 }
             }catch (FileNotFoundException ex) {
                     Logger.getLogger(Spine_Geodesic.class.getName()).log(Level.SEVERE, null, ex);
@@ -495,11 +558,13 @@ public class Spine_Geodesic implements PlugInFilter {
                 if(ln == null )
                     return null;
                 while( (ln = reader.readLine()) != null){
-                    float xf =  Float.parseFloat(ln.split(",")[8]);
-                    float yf =  Float.parseFloat(ln.split(",")[9]);
+                    float xf =  Float.parseFloat(ln.split(",")[8]) - roiWidth/2;
+                    float yf =  Float.parseFloat(ln.split(",")[9]) - roiWidth/2;
                     float zf =  Float.parseFloat(ln.split(",")[10]);
                     int position = zf < 1 ? 1 : Math.round(zf);
-                    Roi roi = new Roi(xf,yf,1,1);
+                    xf = (xf < 0 ) ? 0 : xf;
+                    yf = (yf < 0 ) ? 0 : yf;
+                    Roi roi = new Roi(xf,yf,roiWidth,roiWidth);
                     roi.setPosition(position);
                     rois.add(roi);
                 }               
@@ -515,32 +580,192 @@ public class Spine_Geodesic implements PlugInFilter {
           ArrayList Output = new ArrayList();
           String result;
           Rectangle rect;
-          int count = 1 ,slice = 0;
-          ArrayList denDist;
+          int count = 1 ,slice;
+          float ID, dist;
+          //ArrayList denDist;
           for( Roi roi : rois){
               rect = roi.getBounds();
               slice  = roi.getPosition();
  //             slice = slice <= dendID.getNSlices() ? slice : slice - 1;             //should not be required
-              
-              float ID  = dendID.getStack().getProcessor(slice).getPixelValue(rect.x, rect.y);
-              float dist = geoImg.getStack().getProcessor(slice).getPixelValue(rect.x,rect.y);
-              
+              ImageProcessor ipD = dendID.getStack().getProcessor(slice);
+              ipD.setRoi(roi);
+              ID = (float)ipD.getStats().max;
+              if(ID == 0)               
+                  continue;                             //Add code to collect the "false spines"  selected as spines but not as dendrites. due to size thld.
+              //float ID  = dendID.getStack().getProcessor(slice).getPixelValue(rect.x, rect.y);
+              //float dist = geoImg.getStack().getProcessor(slice).getPixelValue(rect.x,rect.y);
+              ImageProcessor ipG = geoImg.getStack().getProcessor(slice);
+              ipG.setRoi(roi);
+              dist = (float)ipG.getStats().max;
+              if(this.inclDepth)
+                dist = findMaxdist(slice, dendID, roi, ID, geoImg, dist);
+                  
               result = count +"\t" +rect.x + "\t" + rect.y +"\t"+ slice + "\t" + ID + "\t" + dist + "\n";
               //Add the dend ID and dist to 
-              denDist = (ArrayList)Dendrites.get(ID);
-              if(denDist == null)
-                  denDist = new ArrayList();
-              denDist.add(dist);
-              Dendrites.put(ID,denDist);
+//              denDist = (ArrayList)Dendrites.get(ID);
+//              if(denDist == null)
+//                  denDist = new ArrayList();
+//              denDist.add(dist);
+              
+              //Dendrites.put(ID,denDist);
+              SpineData = (ArrayList)Dendrites.get(ID);
+              if(SpineData == null)
+                  SpineData = new ArrayList<SpineDescriptor>();
+              SpineDescriptor spine = new SpineDescriptor(Math.round(ID),count,rect,dist);
+              spine.setBound(rect);
+              spine.setzPosition(slice);
+              //spine.setDistFromIdx(dist);
+              SpineData.add(spine);
+              Dendrites.put(ID, SpineData);
+              
               Output.add(result);
+              count++;
           }
+         
           return Output;
     }
 
+    private float findMaxdist(int slice, ImagePlus dendID, Roi roi, float ID, ImagePlus geoImg, float dist) {
+        ImageProcessor ipD;
+        ImageProcessor ipG;
+        for(int lwSlice = slice - this.roiWidth/2 ; lwSlice < slice  && lwSlice > 0; lwSlice++){
+            ipD = dendID.getStack().getProcessor(lwSlice);
+            ipD.setRoi(roi);
+            float id = (float) ipD.getStats().max;
+            if( id == ID){
+                ipG = geoImg.getStack().getProcessor(lwSlice);
+                ipG.setRoi(roi);
+                float d  = (float) ipG.getStats().max;
+                dist = (d > dist)? d: dist;
+            }
+        }
+        int maxSlice = dendID.getNSlices();
+        int tpSlice = slice + roiWidth/2;
+        tpSlice = (tpSlice < maxSlice)? tpSlice:maxSlice;
+        for(int cSlice = slice + 1 ; cSlice < tpSlice ; cSlice++){
+            ipD = dendID.getStack().getProcessor(cSlice);
+            ipD.setRoi(roi);
+            float id = (float) ipD.getStats().max;
+            if( id == ID){
+                ipG = geoImg.getStack().getProcessor(cSlice);
+                ipG.setRoi(roi);
+                float d  = (float) ipG.getStats().max;
+                dist = (d > dist)? d: dist;
+            }
+        }
+        return dist;
+    }
+    private void createSummary(FileWriter w){
+            String outRow;
+            outRow = "DendriteID" +"\t";
+                        outRow += "SpineId" + "\t";
+                        outRow += "GeoDistfromMarker" +"\t";
+                        outRow += "Cart Dist to Neigh" +"\t";
+                        outRow += "Near Neigh GeoDes" +"\t";
+                        outRow += "x" +"\t";
+                        outRow += "y" +"\n";
+                        
+                        try{
+                            w.write(outRow);
+                        }catch(IOException ex){
+                            
+                        }
+                        
+            for (Iterator<ConcurrentHashMap.Entry<Float,ArrayList>> it = Dendrites.entrySet().iterator(); it.hasNext();){
+                    ConcurrentHashMap.Entry<Float,ArrayList> entry = it.next();
+                    Collections.sort(entry.getValue(), new distComparator());
+                    //Calculate the nearest neighbour distance and print to file
+                    ArrayList<SpineDescriptor> distSorted = entry.getValue();
+                    SpineDescriptor prevSp = null,nextSp;
+                    int nextIdx = 1;
+                    int totalSp = distSorted.size();
+                    float prevDist, nextDist, cartDist = 0;
+                    for(SpineDescriptor spine : distSorted){
+                        nextIdx++;
+                        if(prevSp == null){
+                            prevSp = spine;
+                            if(nextIdx < totalSp){                               
+                                nextSp = distSorted.get(nextIdx);
+                                nextDist = nextSp.getDistFromIdx()- spine.getDistFromIdx();
+                                //cartDist = measureCartDist(nextSp,spine); //Calcualte the cart distance and compare
+                                //nextDist = (cartDist < nextDist )? nextDist : -cartDist;      //-ive sign is to identify the incorrect dist       
+                                spine.setNearNeighDist(nextDist);
+                                spine.setFarthestNeighDist(nextDist);
+                            }
+                        }
+                        else{
+                            prevDist = spine.getDistFromIdx() - prevSp.getDistFromIdx();
+                            if (nextIdx < totalSp){
+                                nextSp = distSorted.get(nextIdx);
+                                nextDist = nextSp.getDistFromIdx()- spine.getDistFromIdx();
+                                if( prevDist > nextDist){
+                                    //Calcualte the cart distance and compare
+                                    cartDist =  measureCartDist(nextSp,spine);
+                                    //nextDist = (cartDist < nextDist)? nextDist : -cartDist;
+                                    spine.setNearNeighDist(nextDist);
+                                    spine.setFarthestNeighDist(prevDist);
+                                }else{
+                                    //Calcualte the cart distance and compare
+                                    cartDist = measureCartDist(prevSp,spine);
+                                    //prevDist = (cartDist < prevDist)? prevDist : -prevDist;
+                                    spine.setNearNeighDist(prevDist);
+                                    spine.setFarthestNeighDist(nextDist);
+                                }
+                            }else{
+                                //Calcualte the cart distance and compare
+                                cartDist = measureCartDist(prevSp,spine);
+                                //prevDist = (cartDist < prevDist)? prevDist : -prevDist;
+                                spine.setNearNeighDist(prevDist);
+                                spine.setFarthestNeighDist(prevDist);
+                            }
+                        }
+                        outRow = entry.getKey() +"\t";
+                        outRow += spine.getSpineID() + "\t";
+                        outRow += spine.getDistFromIdx() +"\t";
+                        outRow += cartDist +"\t";
+                        outRow += spine.getNearNeighDist() +"\t";
+                        Rectangle b = spine.getBound();
+                        outRow += (b != null)?b.x +"\t" : "-\t";
+                        outRow += (b != null)?b.y +"\n" : "-\n";
+                        try {
+                            w.write(outRow);
+                        } catch (IOException ex) {
+                            Logger.getLogger(Spine_Geodesic.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                    //Tabulate the results
+                    
+            }
+            
+            
+    }
+    class distComparator implements Comparator<SpineDescriptor>{
+
+        @Override
+        public int compare(SpineDescriptor s1, SpineDescriptor s2) {
+
+            return Float.compare(s1.getDistFromIdx(), s2.getDistFromIdx());
+        }
+    
+    }
+    private float measureCartDist(SpineDescriptor s1, SpineDescriptor s2){
+        
+        Rectangle b1 = s1.getBound(),b2 = s2.getBound();
+        double zSq = 0.0;
+        if( s1.getzPosition() != -1 && s2.getzPosition() != -1)
+            zSq = Math.pow((s1.getzPosition()-s2.getzPosition()), 2);
+        return (float)Math.pow((Math.pow((b1.x - b2.x),2) + Math.pow((b1.y - b2.y),2) + zSq ),0.5);
+        
+    }
     private void writeResult(ArrayList<String> result, FileWriter outFile) {
 //        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
 
-              
+              String header = "ID" +"\t" +"X Ord"+ "\t" + "Y Ord" +"\t"+ "Z" + "\t" + "DentID" + "\t" + "Geodist" + "\n";
+            try {
+                outFile.write(header);
+            } catch (IOException ex) {
+                Logger.getLogger(Spine_Geodesic.class.getName()).log(Level.SEVERE, null, ex);
+            }
               try {
                   for(String ln : result)
                         outFile.write(ln);
@@ -552,20 +777,20 @@ public class Spine_Geodesic implements PlugInFilter {
     }
     private void writeSpineDist(File out){
         
-        Iterator iter = Dendrites.entrySet().iterator();
-        Map.Entry entry;
-        ArrayList<Float> arrayTowrite;
-        try{
-            FileWriter outFile = new FileWriter(out);
-            while(iter.hasNext()){
-                entry = (Map.Entry<Integer, ArrayList>)iter.next();
-                arrayTowrite = (ArrayList)entry.getValue();
-                Collections.sort(arrayTowrite);
-                for(Float val : arrayTowrite)
-                    outFile.write(""+(Integer)entry.getKey()+"\t"+val+"\n");
-                        }
-        }catch(IOException ex){
-            
-        }
+//        Iterator iter = Dendrites.entrySet().iterator();
+//        Map.Entry entry;
+//        ArrayList<Float> arrayTowrite;
+//        try{
+//            FileWriter outFile = new FileWriter(out);
+//            while(iter.hasNext()){
+//                entry = (Map.Entry<Integer, ArrayList>)iter.next();
+//                arrayTowrite = (ArrayList)entry.getValue();
+//                Collections.sort(arrayTowrite);
+//                for(Float val : arrayTowrite)
+//                    outFile.write(""+(Integer)entry.getKey()+"\t"+val+"\n");
+//                        }
+//        }catch(IOException ex){
+//            
+//        }
     }
 }

@@ -42,6 +42,9 @@
                               <Component id="OpenButton" min="-2" pref="133" max="-2" attributes="0"/>
                               <EmptySpace max="-2" attributes="0"/>
                               <Component id="ExitButton" min="-2" pref="127" max="-2" attributes="0"/>
+                              <EmptySpace type="separate" max="-2" attributes="0"/>
+                              <Component id="jCheckBox_setStart" min="-2" pref="146" max="-2" attributes="0"/>
+                              <EmptySpace min="0" pref="0" max="32767" attributes="0"/>
                           </Group>
                           <Component id="jScrollPane1" alignment="0" pref="687" max="32767" attributes="0"/>
                           <Component id="jSeparator1" alignment="0" max="32767" attributes="0"/>
@@ -65,6 +68,7 @@
                   <Component id="RemoveButton" alignment="3" min="-2" max="-2" attributes="0"/>
                   <Component id="OpenButton" alignment="3" min="-2" pref="23" max="-2" attributes="0"/>
                   <Component id="ExitButton" alignment="3" min="-2" max="-2" attributes="0"/>
+                  <Component id="jCheckBox_setStart" alignment="3" min="-2" max="-2" attributes="0"/>
               </Group>
               <EmptySpace type="separate" min="-2" max="-2" attributes="0"/>
               <Component id="jScrollPane1" pref="85" max="32767" attributes="0"/>
@@ -146,6 +150,11 @@
     <Component class="javax.swing.JSeparator" name="jSeparator1">
       <Properties>
         <Property name="autoscrolls" type="boolean" value="true"/>
+      </Properties>
+    </Component>
+    <Component class="javax.swing.JCheckBox" name="jCheckBox_setStart">
+      <Properties>
+        <Property name="text" type="java.lang.String" value="Set as start directory"/>
       </Properties>
     </Component>
   </SubComponents>
