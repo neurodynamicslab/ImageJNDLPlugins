@@ -8,8 +8,23 @@ import java.util.Comparator;
  * @author balaji
  */
 public class SpineDescriptor {
+
+    /**
+     * @return the typeFlag
+     */
+    public spineType getTypeFlag() {
+        return typeFlag;
+    }
+
+    /**
+     * @param typeFlag the typeFlag to set
+     */
+    public void setTypeFlag(spineType typeFlag) {
+        this.typeFlag = typeFlag;
+    }
     
     public SpineDescriptor(int DentID,int SpineID,Rectangle bounds, float distance){
+        this.typeFlag = spineType.Reg;
     
         this.DentID = DentID;
         this.setBound(bounds);
@@ -110,6 +125,12 @@ public class SpineDescriptor {
             private Rectangle bound;
             private Integer DentID;
             private Integer zPosition;
+            private spineType typeFlag;
+            
+            /**
+             * 
+             */
+            public enum spineType{ First, Last, Singleton, Reg};
 
     /**
      * @return the zPosition

@@ -586,7 +586,7 @@ public class Spine_Geodesic implements PlugInFilter {
           for( Roi roi : rois){
               rect = roi.getBounds();
               slice  = roi.getPosition();
- //             slice = slice <= dendID.getNSlices() ? slice : slice - 1;             //should not be required
+              //slice = slice <= dendID.getNSlices() ? slice : slice - 1;             //should not be required
               ImageProcessor ipD = dendID.getStack().getProcessor(slice);
               ipD.setRoi(roi);
               ID = (float)ipD.getStats().max;
@@ -658,83 +658,94 @@ public class Spine_Geodesic implements PlugInFilter {
     private void createSummary(FileWriter w){
             String outRow;
             outRow = "DendriteID" +"\t";
-                        outRow += "SpineId" + "\t";
-                        outRow += "GeoDistfromMarker" +"\t";
-                        outRow += "Cart Dist to Neigh" +"\t";
-                        outRow += "Near Neigh GeoDes" +"\t";
-                        outRow += "x" +"\t";
-                        outRow += "y" +"\n";
+            outRow += "SpineId" + "\t";
+            outRow += "GeoDistfromMarker" +"\t";
+            outRow += "Cart Dist to Neigh" +"\t";
+            outRow += "Near Neigh GeoDes" +"\t";
+            outRow += "x" +"\t";
+            outRow += "y" +"\n";
                         
-                        try{
+            try{
                             w.write(outRow);
                         }catch(IOException ex){
                             
                         }
                         
             for (Iterator<ConcurrentHashMap.Entry<Float,ArrayList>> it = Dendrites.entrySet().iterator(); it.hasNext();){
-                    ConcurrentHashMap.Entry<Float,ArrayList> entry = it.next();
-                    Collections.sort(entry.getValue(), new distComparator());
-                    //Calculate the nearest neighbour distance and print to file
-                    ArrayList<SpineDescriptor> distSorted = entry.getValue();
-                    SpineDescriptor prevSp = null,nextSp;
-                    int nextIdx = 1;
-                    int totalSp = distSorted.size();
-                    float prevDist, nextDist, cartDist = 0;
-                    for(SpineDescriptor spine : distSorted){
-                        nextIdx++;
-                        if(prevSp == null){
-                            prevSp = spine;
-                            if(nextIdx < totalSp){                               
-                                nextSp = distSorted.get(nextIdx);
-                                nextDist = nextSp.getDistFromIdx()- spine.getDistFromIdx();
-                                //cartDist = measureCartDist(nextSp,spine); //Calcualte the cart distance and compare
-                                //nextDist = (cartDist < nextDist )? nextDist : -cartDist;      //-ive sign is to identify the incorrect dist       
-                                spine.setNearNeighDist(nextDist);
-                                spine.setFarthestNeighDist(nextDist);
-                            }
+                
+                ConcurrentHashMap.Entry<Float,ArrayList> entry = it.next();
+                Collections.sort(entry.getValue(), new distComparator());
+                
+            //Calculate the nearest neighbour distance and print to file
+                
+                ArrayList<SpineDescriptor> distSorted = entry.getValue();
+                SpineDescriptor prevSp = null,nextSp;
+                int nextIdx = 1;
+                int totalSp = distSorted.size();
+                float prevDist, nextDist, cartDist = 0;
+                
+                for(SpineDescriptor spine : distSorted){
+                    nextIdx++;
+                    if(prevSp == null){
+                        prevSp = spine;
+                        if(nextIdx < totalSp){                               
+                            nextSp = distSorted.get(nextIdx);
+                            nextDist = nextSp.getDistFromIdx()- spine.getDistFromIdx();
+                            //cartDist = measureCartDist(nextSp,spine); //Calcualte the cart distance and compare
+                            //nextDist = (cartDist < nextDist )? nextDist : -cartDist;      //-ive sign is to identify the incorrect dist       
+                            spine.setNearNeighDist(nextDist);
+                            spine.setFarthestNeighDist(nextDist);
+                            spine.setTypeFlag(SpineDescriptor.spineType.First);
+                        }else{
+                            spine.setTypeFlag(SpineDescriptor.spineType.Singleton);
                         }
-                        else{
-                            prevDist = spine.getDistFromIdx() - prevSp.getDistFromIdx();
-                            if (nextIdx < totalSp){
-                                nextSp = distSorted.get(nextIdx);
-                                nextDist = nextSp.getDistFromIdx()- spine.getDistFromIdx();
-                                if( prevDist > nextDist){
-                                    //Calcualte the cart distance and compare
-                                    cartDist =  measureCartDist(nextSp,spine);
-                                    //nextDist = (cartDist < nextDist)? nextDist : -cartDist;
-                                    spine.setNearNeighDist(nextDist);
-                                    spine.setFarthestNeighDist(prevDist);
-                                }else{
-                                    //Calcualte the cart distance and compare
-                                    cartDist = measureCartDist(prevSp,spine);
-                                    //prevDist = (cartDist < prevDist)? prevDist : -prevDist;
-                                    spine.setNearNeighDist(prevDist);
-                                    spine.setFarthestNeighDist(nextDist);
-                                }
+                    }else{
+                        prevDist = spine.getDistFromIdx() - prevSp.getDistFromIdx();
+                        if (nextIdx < totalSp){
+                            nextSp = distSorted.get(nextIdx);
+                            nextDist = nextSp.getDistFromIdx()- spine.getDistFromIdx();
+                            if( prevDist > nextDist){
+                                //Calcualte the cart distance and compare
+                                cartDist =  measureCartDist(nextSp,spine);
+                                //nextDist = (cartDist < nextDist)? nextDist : -cartDist;
+                                spine.setNearNeighDist(nextDist);
+                                spine.setFarthestNeighDist(prevDist);
                             }else{
                                 //Calcualte the cart distance and compare
                                 cartDist = measureCartDist(prevSp,spine);
                                 //prevDist = (cartDist < prevDist)? prevDist : -prevDist;
                                 spine.setNearNeighDist(prevDist);
-                                spine.setFarthestNeighDist(prevDist);
+                                spine.setFarthestNeighDist(nextDist);
                             }
-                        }
-                        outRow = entry.getKey() +"\t";
-                        outRow += spine.getSpineID() + "\t";
-                        outRow += spine.getDistFromIdx() +"\t";
-                        outRow += cartDist +"\t";
-                        outRow += spine.getNearNeighDist() +"\t";
-                        Rectangle b = spine.getBound();
-                        outRow += (b != null)?b.x +"\t" : "-\t";
-                        outRow += (b != null)?b.y +"\n" : "-\n";
-                        try {
-                            w.write(outRow);
-                        } catch (IOException ex) {
-                            Logger.getLogger(Spine_Geodesic.class.getName()).log(Level.SEVERE, null, ex);
+                        }else{
+                            //Calcualte the cart distance and compare
+                            cartDist = measureCartDist(prevSp,spine);
+                            //prevDist = (cartDist < prevDist)? prevDist : -prevDist;
+                            spine.setNearNeighDist(prevDist);
+                            spine.setFarthestNeighDist(prevDist);
+                            
+                            if (spine.getTypeFlag() == SpineDescriptor.spineType.First) 
+                                    spine.setTypeFlag(SpineDescriptor.spineType.Singleton) ;
+                             else
+                                spine.setTypeFlag(SpineDescriptor.spineType.Last);
                         }
                     }
-                    //Tabulate the results
-                    
+                    outRow = entry.getKey() +"\t";
+                    outRow += spine.getSpineID() + "\t";
+                    outRow += spine.getDistFromIdx() +"\t";
+                    outRow += cartDist +"\t";
+                    outRow += spine.getNearNeighDist() +"\t";
+                    outRow += spine.getTypeFlag().name() +"\t";
+                    Rectangle b = spine.getBound();
+                    outRow += (b != null)?b.x +"\t" : "-\t";
+                    outRow += (b != null)?b.y +"\n" : "-\n";
+                    try {
+                        w.write(outRow);
+                    } catch (IOException ex) {
+                        Logger.getLogger(Spine_Geodesic.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+                    //Tabulate the results             
             }
             
             
