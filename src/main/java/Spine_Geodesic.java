@@ -96,7 +96,7 @@ public class Spine_Geodesic implements PlugInFilter {
                 
                 //Open a multi file doalog and get a list of files to work on.
                 
-                int option = javax.swing.JOptionPane.showConfirmDialog(null,"Do you to measure ?");
+                int option = javax.swing.JOptionPane.showConfirmDialog(null,"Do you want to measure ?");
                 if(option == javax.swing.JOptionPane.OK_OPTION)
                     this.makeMeasurements();
                 String[] dendfNames,spinefNames;
@@ -234,8 +234,8 @@ public class Spine_Geodesic implements PlugInFilter {
 		new ImageJ();
 
 // open the Clown sample
-		ImagePlus image = IJ.openImage("http://imagej.net/images/clown.jpg");
-		image.show();
+		//ImagePlus image = IJ.openImage("http://imagej.net/images/clown.jpg");
+		//image.show();
 
 		// run the plugin
 		IJ.runPlugIn(clazz.getName(), "");
