@@ -46,7 +46,6 @@ import java.util.logging.Logger;
 import javax.swing.SwingWorker;
 import sc.fiji.analyzeSkeleton.AnalyzeSkeleton_;
 import sc.fiji.analyzeSkeleton.SkeletonResult;
-
 import sc.fiji.skeletonize3D.*;
 
 /**
@@ -662,6 +661,7 @@ public class Spine_Geodesic implements PlugInFilter {
             outRow += "GeoDistfromMarker" +"\t";
             outRow += "Cart Dist to Neigh" +"\t";
             outRow += "Near Neigh GeoDes" +"\t";
+            outRow += "Spine Type\t";
             outRow += "x" +"\t";
             outRow += "y" +"\n";
                         
