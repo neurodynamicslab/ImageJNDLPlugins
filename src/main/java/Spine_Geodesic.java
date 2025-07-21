@@ -684,7 +684,7 @@ public class Spine_Geodesic implements PlugInFilter {
                 int totalSp = distSorted.size();
                 float prevDist, nextDist, cartDist = 0;
                 
-                for(SpineDescriptor spine : distSorted){
+                for(SpineDescriptor spine : distSorted){            //iterate thru a dendrite spine by spine
                     nextIdx++;
                     if(prevSp == null){
                         prevSp = spine;
