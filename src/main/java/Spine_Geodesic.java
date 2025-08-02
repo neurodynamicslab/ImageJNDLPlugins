@@ -598,8 +598,10 @@ public class Spine_Geodesic implements PlugInFilter {
               ImageProcessor ipG = geoImg.getStack().getProcessor(slice);
               ipG.setRoi(roi);
               dist = (float)ipG.getStats().max;
-              if(this.inclDepth)
-                dist = findMaxdist(slice, dendID, roi, ID, geoImg, dist);
+              if(this.inclDepth){
+                //dist = findMaxdist(slice, dendID, roi, ID, geoImg, dist);
+                
+              }
                   
               result = count +"\t" +rect.x + "\t" + rect.y +"\t"+ slice + "\t" + ID + "\t" + dist + "\n";
               //Add the dend ID and dist to 
@@ -728,14 +730,14 @@ public class Spine_Geodesic implements PlugInFilter {
                             }else{
                                 //Calcualte the cart distance and compare
                                 cartDist = measureCartDist(prevSp,spine);
-                                //prevDist = (cartDist < prevDist)? prevDist : -prevDist;
+                                //prevDist = (cartDist < prevDist)? prevDist : -cartDist;
                                 spine.setNearNeighDist(prevDist);
                                 spine.setFarthestNeighDist(nextDist);
                             }
                         }else{
                             //Calcualte the cart distance and compare
                             cartDist = measureCartDist(prevSp,spine);
-                            //prevDist = (cartDist < prevDist)? prevDist : -prevDist;
+                            //prevDist = (cartDist < prevDist)? prevDist : -cartDist;
                             spine.setNearNeighDist(prevDist);
                             spine.setFarthestNeighDist(prevDist);
                             
