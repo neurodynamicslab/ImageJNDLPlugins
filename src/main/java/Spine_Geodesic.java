@@ -526,6 +526,8 @@ public class Spine_Geodesic implements PlugInFilter {
                         resFile.write("TreeID\tTotalVoxels\tnBranches\tAveLength\tnJunctions\tTotLen\n");
                         resFile.write(outPut);
                         resFile.close();
+                        
+                        temp.close();
                         //temp.show();
                         
 
@@ -610,10 +612,12 @@ public class Spine_Geodesic implements PlugInFilter {
               SpineData = (ArrayList)Dendrites.get(ID);
               if(SpineData == null)
                   SpineData = new ArrayList<SpineDescriptor>();
+              
               SpineDescriptor spine = new SpineDescriptor(Math.round(ID),count,rect,dist);
               spine.setBound(rect);
               spine.setzPosition(slice);
               //spine.setDistFromIdx(dist);
+              
               SpineData.add(spine);
               Dendrites.put(ID, SpineData);
               
@@ -663,13 +667,17 @@ public class Spine_Geodesic implements PlugInFilter {
             outRow += "Near Neigh GeoDes" +"\t";
             outRow += "Spine Type\t";
             outRow += "x" +"\t";
-            outRow += "y" +"\n";
+            outRow += "y" +"\t";
+            outRow += "z" + "\t";
+            outRow += "Density Normalised Neigh" +"\t";
+            outRow += "Spine density \t";
+            outRow += "Dendritic Length \n";
                         
             try{
                             w.write(outRow);
                         }catch(IOException ex){
                             
-                        }
+                        }                                       ///Write the above header for the data table in the text file
                         
             for (Iterator<ConcurrentHashMap.Entry<Float,ArrayList>> it = Dendrites.entrySet().iterator(); it.hasNext();){
                 
@@ -678,11 +686,18 @@ public class Spine_Geodesic implements PlugInFilter {
                 
             //Calculate the nearest neighbour distance and print to file
                 
-                ArrayList<SpineDescriptor> distSorted = entry.getValue();
-                SpineDescriptor prevSp = null,nextSp;
-                int nextIdx = 1;
+                ArrayList<SpineDescriptor> distSorted = entry.getValue();       //Length of this (number of elements) is the number of spines
+                                                                                // The geo distance of the last spine in this list is the length of the dendrite
+                                                                              // It is approximate to the extent that the dendrite does not extend too much beyond this
+                //float denLength = distSorted.getLast().getDistFromIdx();
+                float noSpines = distSorted.size();
+                float denLength = distSorted.get((int)(noSpines-1)).getDistFromIdx();
+                float spineDen = noSpines/denLength;
+                
+                SpineDescriptor prevSp = null,nextSp = null;
+                int nextIdx = 0;
                 int totalSp = distSorted.size();
-                float prevDist, nextDist, cartDist = 0;
+                float prevDist = 0, nextDist = 0, cartDist = 0;
                 
                 for(SpineDescriptor spine : distSorted){            //iterate thru a dendrite spine by spine
                     nextIdx++;
@@ -690,8 +705,8 @@ public class Spine_Geodesic implements PlugInFilter {
                         prevSp = spine;
                         if(nextIdx < totalSp){                               
                             nextSp = distSorted.get(nextIdx);
-                            nextDist = nextSp.getDistFromIdx()- spine.getDistFromIdx();
-                            //cartDist = measureCartDist(nextSp,spine); //Calcualte the cart distance and compare
+                            nextDist = nextSp.getDistFromIdx()- spine.getDistFromIdx(); //distance to the next spine
+                            cartDist = measureCartDist(nextSp,spine); //Calcualte the cart distance and compare
                             //nextDist = (cartDist < nextDist )? nextDist : -cartDist;      //-ive sign is to identify the incorrect dist       
                             spine.setNearNeighDist(nextDist);
                             spine.setFarthestNeighDist(nextDist);
@@ -700,7 +715,7 @@ public class Spine_Geodesic implements PlugInFilter {
                             spine.setTypeFlag(SpineDescriptor.spineType.Singleton);
                         }
                     }else{
-                        prevDist = spine.getDistFromIdx() - prevSp.getDistFromIdx();
+                        prevDist = spine.getDistFromIdx() - prevSp.getDistFromIdx();  //distance from the previous spine
                         if (nextIdx < totalSp){
                             nextSp = distSorted.get(nextIdx);
                             nextDist = nextSp.getDistFromIdx()- spine.getDistFromIdx();
@@ -730,6 +745,8 @@ public class Spine_Geodesic implements PlugInFilter {
                                 spine.setTypeFlag(SpineDescriptor.spineType.Last);
                         }
                     }
+                    
+                    
                     outRow = entry.getKey() +"\t";
                     outRow += spine.getSpineID() + "\t";
                     outRow += spine.getDistFromIdx() +"\t";
@@ -737,13 +754,18 @@ public class Spine_Geodesic implements PlugInFilter {
                     outRow += spine.getNearNeighDist() +"\t";
                     outRow += spine.getTypeFlag().name() +"\t";
                     Rectangle b = spine.getBound();
-                    outRow += (b != null)?b.x +"\t" : "-\t";
-                    outRow += (b != null)?b.y +"\n" : "-\n";
+                    outRow += (b != null)?b.x +"\t" : "\t";
+                    outRow += (b != null)?b.y +"\t" : "\t";
+                    outRow += spine.getzPosition() + "\t";
+                    outRow += spine.getNearNeighDist()*spineDen +"\t";
+                    outRow += spineDen + "\t";
+                    outRow += denLength + "\n";
                     try {
                         w.write(outRow);
                     } catch (IOException ex) {
                         Logger.getLogger(Spine_Geodesic.class.getName()).log(Level.SEVERE, null, ex);
                     }
+                    prevSp = spine;
                 }
                     //Tabulate the results             
             }
