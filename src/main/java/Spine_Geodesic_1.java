@@ -42,6 +42,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.SwingWorker;
@@ -256,37 +257,34 @@ public class Spine_Geodesic_1 implements PlugInFilter {
          * @param img
          * @param fname 
          */
-        private void convert2geodesic(String sourceImg,String destsuffix){
+        private ImagePlus convert2geodesic(String sourceImg,String destsuffix){
             ImagePlus img = new ImagePlus(sourceImg);
             if(img == null ){
                 this.errFile.add(sourceImg);
-                return;
+                return null;
             }
             ArrayList success, failure;
             success = this.dendriteSels;
             failure = this.errFile;
-            long availableMem = java.lang.Runtime.getRuntime().freeMemory();
-            long ijMem = IJ.maxMemory() - IJ.currentMemory();
-            double fileSz = img.getSizeInBytes();
+           
+            double ijMem = (IJ.maxMemory() - IJ.currentMemory())/1000000;
+            
+            double fileSz = img.getSizeInBytes()/1000000;
             System.out.println("Available Memory is :" + ijMem + "File size is:" + fileSz);
-            while (ijMem < 2 * fileSz){
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException ex) {
-                    //Logger.getLogger(Spine_Geodesic.class.getName()).log(Level.SEVERE, null, ex);
-                }
+            if (ijMem < 2 * fileSz){
+              
                 System.gc();
                 ijMem = IJ.maxMemory() - IJ.currentMemory();
-                System.out.println("Waiting for memory to clear.."+ ijMem + " File Sz : " + (long)fileSz  + "Diff : " + (ijMem - fileSz));
+                System.out.println("Not enough memory: "+ ijMem + " MB but File Sz is : " + fileSz  + "(MB) Diff : " + (ijMem - fileSz));
             }
             
-            SwingWorker worker = new SwingWorker(){
-                @Override
-                protected Object doInBackground() throws Exception {
+            //SwingWorker worker = new SwingWorker(){
+               // @Override
+               // protected Object doInBackground() throws Exception {
                    
                             ThresholdToSelection roiCreator = new ThresholdToSelection();
                             ChamferMask3D chamferMask;
-                            int [] weights= {10,14,17,22,24,30};
+                            
                             chamferMask =  new ChamferMask3DW6(10,14,17,2,24,30);
 
                             StackStatistics stat = new StackStatistics(img);
@@ -412,24 +410,28 @@ public class Spine_Geodesic_1 implements PlugInFilter {
                             if(fileStatus){
                                 System.out.println("File :"+sourceImg+" processed");
                                 success.add(sourceImg);
+                                return out;
                             }
                             else{
                                 System.out.println("Error writing File :"+sourceImg);
                                 failure.add(sourceImg);
+                                return null;
                             }
                             //img.setStack(resStk);
                 //            out.setStack(markStk);
                 //            IJ.saveAsTiff(out, fname+"_mrk");
-                    return null;
-                }
+           //         return out;
+            //    }
+               
                 
-            };
-            Thread tp = new Thread(worker,"gesodesic_"+threadCount);
+            //};
+            //Thread tp = new Thread(worker,"gesodesic_"+threadCount);
             //worker.execute();
-            tp.start();
+            //tp.start();
             
-            monitor.add(tp);
-            threadCount++;
+            //monitor.add(tp);
+            //threadCount++;
+            
         }
 
 //  
@@ -458,25 +460,24 @@ public class Spine_Geodesic_1 implements PlugInFilter {
             startDirectory = dendFiles.getDirectory();
             start = new File(startDirectory);
            
-            MultiFileDialog geoFiles = new MultiFileDialog(null,true,start);
+            //MultiFileDialog geoFiles = new MultiFileDialog(null,true,start);
             MultiFileDialog measurements = new MultiFileDialog(null,true,start);
             
-            geoFiles.setTitle("Select the image files with geodesic distances");
+            //geoFiles.setTitle("Select the image files with geodesic distances");
             measurements.setTitle("Select the csv file with co-ordinates");
             
-            geoFiles.getFileSelDialog().setCurrentDirectory(start);
-            geoFiles.setVisible(true);
-            geoFileNames = geoFiles.getSelectionArray();
+            //geoFiles.getFileSelDialog().setCurrentDirectory(start);
+            //geoFiles.setVisible(true);
+            //geoFileNames = geoFiles.getSelectionArray();
             
             measurements.getFileSelDialog().setCurrentDirectory(start);
             measurements.setVisible(true);
             measFileNames =  measurements.getSelectionArray();
             
-            if( dendFileNames.length != geoFileNames.length || geoFileNames.length != measFileNames.length)
+            if( dendFileNames.length != /*geoFileNames.length || geoFileNames.length != */ measFileNames.length)
                 return;
-            int nFiles = geoFileNames.length;
-            ImagePlus dendID, geoImg, sklImg;
-            String [] sklFileNames = new String[nFiles];
+            int nFiles = dendFileNames.length;
+            ImagePlus dendID, geoImg;
             FileReader cordFile ;
             FileWriter outFile;
             FileWriter resFile,sumFile;
@@ -485,7 +486,8 @@ public class Spine_Geodesic_1 implements PlugInFilter {
 
 
                         dendID = new ImagePlus(dendFileNames[count]);
-                        geoImg = new ImagePlus(geoFileNames[count]);
+                        
+                        geoImg = convert2geodesic(dendFileNames[count],"geo1");//new ImagePlus(geoFileNames[count]);
                         
                         String rootName = measFileNames[count].split("\\.")[0];
                         cordFile = new FileReader(measFileNames[count]);
