@@ -27,6 +27,7 @@ import java.util.ArrayList;
 
 import inra.ijpb.algo.DefaultAlgoListener;
 import inra.ijpb.binary.distmap.ChamferMask3D;
+import inra.ijpb.binary.distmap.ChamferMask3DW6;
 import inra.ijpb.binary.geodesic.GeodesicDistanceTransform3D;
 import inra.ijpb.binary.geodesic.GeodesicDistanceTransform3DFloat;
 import java.awt.Point;
@@ -77,7 +78,6 @@ public class Spine_Geodesic_1 implements PlugInFilter {
         int roiWidth = 2 ;// ROI width over which to search for max the geodesic distance
         private final boolean inclDepth = true; //set this to true for searching for max geodesic dist in Z
         
-        
 
 	@Override
 	public int setup(String arg, ImagePlus imp) {
@@ -95,13 +95,13 @@ public class Spine_Geodesic_1 implements PlugInFilter {
                 
                 //Open a multi file doalog and get a list of files to work on.
                 
-                int option = javax.swing.JOptionPane.showConfirmDialog(null,"Do you want to measure ?");
-                if(option == javax.swing.JOptionPane.OK_OPTION)
-                    this.makeMeasurements();
+                //int option = javax.swing.JOptionPane.showConfirmDialog(null,"Do you want to measure dendrite charecterisitics or mure ?");
+                //if(option == javax.swing.JOptionPane.OK_OPTION)
+                 //   this.measureDends();
                 String[] dendfNames,spinefNames;
                 boolean errStatus;
                
-                FD.setTitle("Select the files with dendritic selections");
+                FD.setTitle("Select the files with dendritic selections (or IDs)");
                 FD.setVisible(true);
                 
                 errStatus =   ! (FD.getResult()== 2) ; //selection is made and has atleast one file
@@ -130,7 +130,7 @@ public class Spine_Geodesic_1 implements PlugInFilter {
                     int fCount = 0;
                     dendriteSels = new ArrayList();
                     errFile = new ArrayList();
-                    String destPrefix = "_geo";
+                    String destPrefix = "_geo1";
                     for (String fname : dendfNames){
                         //TODO: Add check for 
                         File tmpFile = new File(fname);//new ImagePlus(fname);
@@ -184,7 +184,7 @@ public class Spine_Geodesic_1 implements PlugInFilter {
                     
                     System.out.println("All threads have ended");
                     
-                    int remFiles = dendfNames.length - dendriteSels.size() + errFile.size();
+                    int remFiles = dendfNames.length - dendriteSels.size() - errFile.size();
                     
                     while(remFiles > 0){
                        try {
@@ -193,7 +193,7 @@ public class Spine_Geodesic_1 implements PlugInFilter {
                             //Logger.getLogger(Spine_Geodesic.class.getName()).log(Level.SEVERE, null, ex);
                         }
                         System.out.println("Waiting for writing " +remFiles + " remaining files");
-                        remFiles = dendfNames.length - dendriteSels.size() + errFile.size();
+                        remFiles = dendfNames.length - dendriteSels.size() - errFile.size();
                     }
                     
                     System.out.println("Out of "+dendfNames.length + " "+errFile.size() +" could not be processed");
@@ -287,7 +287,7 @@ public class Spine_Geodesic_1 implements PlugInFilter {
                             ThresholdToSelection roiCreator = new ThresholdToSelection();
                             ChamferMask3D chamferMask;
                             int [] weights= {10,14,17,22,24,30};
-                            chamferMask =  ChamferMask3D.fromWeights(weights);
+                            chamferMask =  new ChamferMask3DW6(10,14,17,2,24,30);
 
                             StackStatistics stat = new StackStatistics(img);
                             int lowerInt = stat.min == 0 ? 1 :(int) Math.floor(stat.min) ;              //ideally this can be set to 1 as the enumeration of objects are integer
@@ -408,6 +408,7 @@ public class Spine_Geodesic_1 implements PlugInFilter {
                             ImagePlus out = new ImagePlus();
                             out.setStack(resStk);
                             boolean fileStatus = IJ.saveAsTiff(out, sourceImg+ destsuffix);
+                            
                             if(fileStatus){
                                 System.out.println("File :"+sourceImg+" processed");
                                 success.add(sourceImg);
@@ -426,6 +427,7 @@ public class Spine_Geodesic_1 implements PlugInFilter {
             Thread tp = new Thread(worker,"gesodesic_"+threadCount);
             //worker.execute();
             tp.start();
+            
             monitor.add(tp);
             threadCount++;
         }
@@ -440,7 +442,7 @@ public class Spine_Geodesic_1 implements PlugInFilter {
      * @param brainImage
      * @param results1 
      */
-        private void makeMeasurements() {
+        private void measureDends() {
             
             
             String[] dendFileNames,geoFileNames,measFileNames;
@@ -495,7 +497,7 @@ public class Spine_Geodesic_1 implements PlugInFilter {
                         
                         //dendID.show();
                         ImagePlus temp = dendID.duplicate();
-                        StackConverter converter = new StackConverter(temp);
+                        StackConverter converter = new StackConverter(temp);s
                         converter.convertToGray8();
                         
                         Skeletonize3D_ skeleton = new Skeletonize3D_();
