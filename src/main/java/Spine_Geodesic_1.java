@@ -497,7 +497,7 @@ public class Spine_Geodesic_1 implements PlugInFilter {
                         
                         //dendID.show();
                         ImagePlus temp = dendID.duplicate();
-                        StackConverter converter = new StackConverter(temp);s
+                        StackConverter converter = new StackConverter(temp);
                         converter.convertToGray8();
                         
                         Skeletonize3D_ skeleton = new Skeletonize3D_();
