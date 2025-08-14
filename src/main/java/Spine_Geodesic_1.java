@@ -14,7 +14,7 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.Roi;
 import ij.gui.ShapeRoi;
-import ij.plugin.filter.PlugInFilter;
+import ij.plugin.PlugIn;
 import ij.plugin.filter.ThresholdToSelection;
 import ij.process.Blitter;
 import ij.process.ByteProcessor;
@@ -40,12 +40,10 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.SwingWorker;
+import javax.swing.JFileChooser;
 import sc.fiji.analyzeSkeleton.AnalyzeSkeleton_;
 import sc.fiji.analyzeSkeleton.SkeletonResult;
 import sc.fiji.skeletonize3D.*;
@@ -55,7 +53,7 @@ import sc.fiji.skeletonize3D.*;
  * is identified by a unique number. The spine image is used to generate measurement mask. This is mask is later used on the 
  * geodesic distance image to obtain the spines with their distance measured from internal reference point in each of the dendrite. 
  */
-public class Spine_Geodesic_1 implements PlugInFilter {
+public class Spine_Geodesic_1 implements PlugIn{
 	protected ImagePlus image;
     // image property members
 
@@ -74,78 +72,110 @@ public class Spine_Geodesic_1 implements PlugInFilter {
         ConcurrentHashMap Dendrites = new ConcurrentHashMap();
         
         ArrayList <SpineDescriptor> SpineData = new ArrayList();
-        MultiFileDialog FD = new MultiFileDialog(null,true);
+        MultiFileDialog dendFiles = new MultiFileDialog(null,true);
+        File dendFileList,spineFileList ;  //csv file containing the list of files with dentrites
         static String startDirectory;
         int roiWidth = 2 ;// ROI width over which to search for max the geodesic distance
         private final boolean inclDepth = true; //set this to true for searching for max geodesic dist in Z
+        private ArrayList roiList;
         
 
-	@Override
-	public int setup(String arg, ImagePlus imp) {
-//		if (arg.equals("about")) {
-//			showAbout();
-//			return DONE;
-//		}
-//
-//		image = imp;
-		return DOES_8G | DOES_16 | DOES_32 | DOES_RGB | DOES_STACKS;
-	}
+//	@Override
+//	public int setup(String arg, ImagePlus imp) {
+////		if (arg.equals("about")) {
+////			showAbout();
+////			return DONE;
+////		}
+////
+////		image = imp;
+//		return ;//DOES_8G | DOES_16 | DOES_32 | DOES_RGB | DOES_STACKS;
+//	}
 
 	@Override
-	public void run(ImageProcessor ip) {
+	public void run(String str) {
                 
                 //Open a multi file doalog and get a list of files to work on.
+                int result;
+                int option = javax.swing.JOptionPane.showConfirmDialog(null,"Do you want to use a file list or select the files one by one ?");
+                if(option == javax.swing.JOptionPane.OK_OPTION){
+                    JFileChooser fc = new JFileChooser();
+                    fc.setDialogTitle("Select the csv file with dendrite ID");
+                    result = fc.showOpenDialog(null);
+                    
+                    if(result == JFileChooser.APPROVE_OPTION){
+                        try {
+                            populateFileLists();
+                        } catch (IOException ex) {
+                            Logger.getLogger(Spine_Geodesic_1.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }else{
+                    }
+                }else if(option == javax.swing.JOptionPane.NO_OPTION){
+                        
+                    this.dendFileList = fc.getSelectedFile();
+    //                    }
+
+                        JFileChooser sfc = new JFileChooser();
+                        sfc.setDialogTitle("Select the csv file with spine co-ordinates");
+                        result = sfc.showOpenDialog(null);
+
+                        if(result != JFileChooser.APPROVE_OPTION)
+                            return;
+                        else{
+                           this.spineFileList =  sfc.getSelectedFile();
+                        }
+                     
+                }
                 
-                //int option = javax.swing.JOptionPane.showConfirmDialog(null,"Do you want to measure dendrite charecterisitics or mure ?");
-                //if(option == javax.swing.JOptionPane.OK_OPTION)
-                 //   this.measureDends();
-                String[] dendfNames,spinefNames;
-                boolean errStatus;
-               
-                FD.setTitle("Select the files with dendritic selections (or IDs)");
-                FD.setVisible(true);
                 
-                errStatus =   ! (FD.getResult()== 2) ; //selection is made and has atleast one file
-                
-                if (errStatus){
-                    System.out.printf("Please select a file : %d", FD.getResult());
-                    return;
-                }else
-                    dendfNames = FD.getSelectionArray();
+                this.measureDends();
+//                String[] dendfNames,spinefNames;
+//                boolean errStatus;
+//               
+//                FD.setTitle("Select the files with dendritic selections (or IDs)");
+//                FD.setVisible(true);
+//                
+//                errStatus =   ! (FD.getResult()== 2) ; //selection is made and has atleast one file
+//                
+//                if (errStatus){
+//                    System.out.printf("Please select a file : %d", FD.getResult());
+//                    return;
+//                }else
+//                    dendfNames = FD.getSelectionArray();
                 
                 //FD.setTitle("Select the files with spine selections (in the same order)");
                // FD.setVisible(true);
                 
                 //errStatus = ! ( FD.getResult() == 2 );
                 
-                if (! errStatus){
-                   
-                    //spinefNames = FD.getSelectionArray();
-                    
-                   // errStatus =  !( spinefNames.length == dendfNames.length);
-                    
-                   // if(errStatus)
-                       // return;
-                    
-                    //TODO : show the paired fnames in a dual window list and allow the user to change the pairing
-                    int fCount = 0;
-                    dendriteSels = new ArrayList();
-                    errFile = new ArrayList();
-                    String destPrefix = "_geo1";
-                    for (String fname : dendfNames){
-                        //TODO: Add check for 
-                        File tmpFile = new File(fname);//new ImagePlus(fname);
-                        if(tmpFile.exists() && tmpFile.isFile()){
-                            this.convert2geodesic(fname, destPrefix);
-                            //fCount++;
-                            //dendriteSels.add(tmp);
-                            
-                        }
-                        else{
-                            errFile.add(fname);
-                            System.out.println("Error opening file : " + fname);
-                        }
-                    }
+//                if (! errStatus){
+//                   
+//                    //spinefNames = FD.getSelectionArray();
+//                    
+//                   // errStatus =  !( spinefNames.length == dendfNames.length);
+//                    
+//                   // if(errStatus)
+//                       // return;
+//                    
+//                    //TODO : show the paired fnames in a dual window list and allow the user to change the pairing
+//                    int fCount = 0;
+//                    dendriteSels = new ArrayList();
+//                    errFile = new ArrayList();
+//                    String destPrefix = "_geo1";
+//                    for (String fname : dendfNames){
+//                        //TODO: Add check for 
+//                        File tmpFile = new File(fname);//new ImagePlus(fname);
+//                        if(tmpFile.exists() && tmpFile.isFile()){
+//                            this.convert2geodesic(fname, destPrefix);
+//                            //fCount++;
+//                            //dendriteSels.add(tmp);
+//                            
+//                        }
+//                        else{
+//                            errFile.add(fname);
+//                            System.out.println("Error opening file : " + fname);
+//                        }
+//                    }
 //                    convert2geodesic(dendriteSels,dendfNames);
                     
 //                    for (fCount = 0;fCount < dendriteSels.size(); fCount++) {
@@ -165,51 +195,46 @@ public class Spine_Geodesic_1 implements PlugInFilter {
 //                        }
 //                        fCount++;
 //                    }
-                    int activeCount = monitor.size();
-                    while(activeCount > 0){
-                        for (int count = 0 ; count < activeCount ; count ++){
-                            if(!monitor.get(count).isAlive()){
-                              activeCount--;                            
-                            }else{
-                                System.out.println(monitor.get(count).getName() + "is alive");
-                            }
-                        }
-                        if(activeCount > 0) 
-                                    System.out.println("Waiting for "+activeCount+ " threads to end out of " + monitor.size());
-                       try {
-                            Thread.sleep(10);
-                        } catch (InterruptedException ex) {
-                            //Logger.getLogger(Spine_Geodesic.class.getName()).log(Level.SEVERE, null, ex);
-                        }
-                    }
-                    
-                    System.out.println("All threads have ended");
-                    
-                    int remFiles = dendfNames.length - dendriteSels.size() - errFile.size();
-                    
-                    while(remFiles > 0){
-                       try {
-                            Thread.sleep(100);
-                        } catch (InterruptedException ex) {
-                            //Logger.getLogger(Spine_Geodesic.class.getName()).log(Level.SEVERE, null, ex);
-                        }
-                        System.out.println("Waiting for writing " +remFiles + " remaining files");
-                        remFiles = dendfNames.length - dendriteSels.size() - errFile.size();
-                    }
-                    
-                    System.out.println("Out of "+dendfNames.length + " "+errFile.size() +" could not be processed");
+//                    int activeCount = monitor.size();
+//                    while(activeCount > 0){
+//                        for (int count = 0 ; count < activeCount ; count ++){
+//                            if(!monitor.get(count).isAlive()){
+//                              activeCount--;                            
+//                            }else{
+//                                System.out.println(monitor.get(count).getName() + "is alive");
+//                            }
+//                        }
+//                        if(activeCount > 0) 
+//                                    System.out.println("Waiting for "+activeCount+ " threads to end out of " + monitor.size());
+//                       try {
+//                            Thread.sleep(10);
+//                        } catch (InterruptedException ex) {
+//                            //Logger.getLogger(Spine_Geodesic.class.getName()).log(Level.SEVERE, null, ex);
+//                        }
+//                    }
+//                    
+//                    System.out.println("All threads have ended");
+//                    
+//                    int remFiles = dendfNames.length - dendriteSels.size() - errFile.size();
+//                    
+//                    while(remFiles > 0){
+//                       try {
+//                            Thread.sleep(100);
+//                        } catch (InterruptedException ex) {
+//                            //Logger.getLogger(Spine_Geodesic.class.getName()).log(Level.SEVERE, null, ex);
+//                        }
+//                        System.out.println("Waiting for writing " +remFiles + " remaining files");
+//                        remFiles = dendfNames.length - dendriteSels.size() - errFile.size();
+//                    }
+//                    
+//                    System.out.println("Out of "+dendfNames.length + " "+errFile.size() +" could not be processed");
                     
 //                    makeMeasurements(brainImage, results);
                     
                     
-                }
+                //}
                
-                
-                
-                
-                
-		
-                
+                 
 	}
 
 	
@@ -449,7 +474,7 @@ public class Spine_Geodesic_1 implements PlugInFilter {
             
             String[] dendFileNames,geoFileNames,measFileNames;
         
-            MultiFileDialog dendFiles = new MultiFileDialog (null, true);
+            //MultiFileDialog dendFiles = new MultiFileDialog (null, true);
             dendFiles.setTitle("Select image files with dendrite ID");
             File start = null;                    
             
@@ -543,6 +568,8 @@ public class Spine_Geodesic_1 implements PlugInFilter {
                         outFile.close();
                         createSummary(sumFile);
                         sumFile.close();
+                        dendID.close();
+                        geoImg.close();
                 }
             }catch (FileNotFoundException ex) {
                     Logger.getLogger(Spine_Geodesic.class.getName()).log(Level.SEVERE, null, ex);
@@ -778,6 +805,33 @@ public class Spine_Geodesic_1 implements PlugInFilter {
             }
             
             
+    }
+
+    private void populateFileLists() throws FileNotFoundException, IOException {
+        //throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        BufferedReader fileReader = new BufferedReader ( new FileReader(this.dendFileList.getAbsolutePath()));
+        String lineData;
+        String delimiter = ","; 
+        String[] fNames ;
+        ImagePlus dendFile;
+        File roiFile;
+            
+        while ((lineData = fileReader.readLine())!= null){
+             
+             fNames = lineData.split(delimiter);
+             dendFile = new ImagePlus(fNames[1]);
+             roiFile = new File(fNames[2]);
+             if(dendFile != null ){
+                if(roiFile != null){
+                    this.dendriteSels.add(dendFile);
+                    this.roiList.add(roiFile);
+                }else{
+                    this.errFile.add(fNames[2]);
+                }
+             }else{
+                 this.errFile.add(fNames[1]);
+             }
+        }   
     }
     class distComparator implements Comparator<SpineDescriptor>{
 
