@@ -14,6 +14,7 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.Roi;
 import ij.gui.ShapeRoi;
+import ij.plugin.PlugIn;
 import ij.plugin.filter.PlugInFilter;
 import ij.plugin.filter.ThresholdToSelection;
 import ij.process.Blitter;
@@ -53,7 +54,7 @@ import sc.fiji.skeletonize3D.*;
  * is identified by a unique number. The spine image is used to generate measurement mask. This is mask is later used on the 
  * geodesic distance image to obtain the spines with their distance measured from internal reference point in each of the dendrite. 
  */
-public class Spine_Geodesic implements PlugInFilter {
+public class Spine_Geodesic implements PlugIn{
 	protected ImagePlus image;
     // image property members
 
@@ -79,19 +80,19 @@ public class Spine_Geodesic implements PlugInFilter {
         
         
 
-	@Override
-	public int setup(String arg, ImagePlus imp) {
-//		if (arg.equals("about")) {
-//			showAbout();
-//			return DONE;
-//		}
-//
-//		image = imp;
-		return DOES_8G | DOES_16 | DOES_32 | DOES_RGB | DOES_STACKS;
-	}
+//	@Override
+//	public int setup(String arg, ImagePlus imp) {
+////		if (arg.equals("about")) {
+////			showAbout();
+////			return DONE;
+////		}
+////
+////		image = imp;
+//		return DOES_8G | DOES_16 | DOES_32 | DOES_RGB | DOES_STACKS;
+//	}
 
-	@Override
-	public void run(ImageProcessor ip) {
+	//@Override
+	public void run(String str /*ImageProcessor ip*/) {
                 
                 //Open a multi file doalog and get a list of files to work on.
                 
@@ -237,7 +238,7 @@ public class Spine_Geodesic implements PlugInFilter {
 		//image.show();
 
 		// run the plugin
-		IJ.runPlugIn(clazz.getName(), "");
+		//IJ.runPlugIn(clazz.getName(), "");
 	}
         /**
          * Given an image( img of the type ImagePlus) of objects with UID (as an integer value for all the connected pixels belonging to the object)

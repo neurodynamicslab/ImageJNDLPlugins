@@ -96,8 +96,8 @@ public class Spine_Geodesic_1 implements PlugIn{
                 
                 //Open a multi file doalog and get a list of files to work on.
                 int result;
-                int option = javax.swing.JOptionPane.showConfirmDialog(null,"Do you want to use a file list or select the files one by one ?");
-                if(option == javax.swing.JOptionPane.OK_OPTION){
+                int option = javax.swing.JOptionPane.showConfirmDialog(null,"Do you want to use a file list or select the files one by one ?","Choose the data file input style",javax.swing.JOptionPane.YES_NO_CANCEL_OPTION);
+                if(option == javax.swing.JOptionPane.YES_OPTION){
                     JFileChooser fc = new JFileChooser();
                     fc.setDialogTitle("Select the csv file with dendrite ID");
                     result = fc.showOpenDialog(null);
