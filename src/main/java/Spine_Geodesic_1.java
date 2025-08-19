@@ -100,7 +100,7 @@ public class Spine_Geodesic_1 implements PlugIn{
                 int option = javax.swing.JOptionPane.showConfirmDialog(null,"Do you want to use a file list from a csv file ?","Choose the mode of data entry",javax.swing.JOptionPane.YES_NO_CANCEL_OPTION);
                 if(option == javax.swing.JOptionPane.YES_OPTION){
                     JFileChooser fc = new JFileChooser();
-                    fc.setDialogTitle("Select the csv file with list of files with dendrite IDs");
+                    fc.setDialogTitle("Select the csv file with list of imagefiles having dendrite IDs ");
                     result = fc.showOpenDialog(null);
                     
                     if(result == JFileChooser.APPROVE_OPTION){
