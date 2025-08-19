@@ -78,6 +78,7 @@ public class Spine_Geodesic_1 implements PlugIn{
         int roiWidth = 2 ;// ROI width over which to search for max the geodesic distance
         private final boolean inclDepth = true; //set this to true for searching for max geodesic dist in Z
         private ArrayList roiList;
+        private File[] coOrdFiles;
         
 
 //	@Override
@@ -96,10 +97,10 @@ public class Spine_Geodesic_1 implements PlugIn{
                 
                 //Open a multi file doalog and get a list of files to work on.
                 int result;
-                int option = javax.swing.JOptionPane.showConfirmDialog(null,"Do you want to use a file list or select the files one by one ?","Choose the data file input style",javax.swing.JOptionPane.YES_NO_CANCEL_OPTION);
+                int option = javax.swing.JOptionPane.showConfirmDialog(null,"Do you want to use a file list from a csv file ?","Choose the mode of data entry",javax.swing.JOptionPane.YES_NO_CANCEL_OPTION);
                 if(option == javax.swing.JOptionPane.YES_OPTION){
                     JFileChooser fc = new JFileChooser();
-                    fc.setDialogTitle("Select the csv file with dendrite ID");
+                    fc.setDialogTitle("Select the csv file with list of files with dendrite IDs");
                     result = fc.showOpenDialog(null);
                     
                     if(result == JFileChooser.APPROVE_OPTION){
@@ -109,10 +110,26 @@ public class Spine_Geodesic_1 implements PlugIn{
                             Logger.getLogger(Spine_Geodesic_1.class.getName()).log(Level.SEVERE, null, ex);
                         }
                     }else{
+                        javax.swing.JOptionPane.showMessageDialog(null, "You need to choose a file for me to process");
+                        return;
                     }
                 }else if(option == javax.swing.JOptionPane.NO_OPTION){
                         
-                    this.dendFileList = fc.getSelectedFile();
+                    dendFiles.setStartDirectory(new File(startDirectory));
+                    this.dendFiles.setVisible(true);
+                    String [] selection = dendFiles.getSelectionArray();
+                    ImagePlus dendImg;
+                    
+                    
+                    
+                    for(String fName : selection){
+                        
+                        dendImg = new ImagePlus(fName);
+                        if(dendImg != null)
+                            this.dendriteSels.add(dendImg);
+                        else
+                            this.errFile.add(fName);
+                    }
     //                    }
 
                         JFileChooser sfc = new JFileChooser();
@@ -472,34 +489,35 @@ public class Spine_Geodesic_1 implements PlugIn{
         private void measureDends() {
             
             
-            String[] dendFileNames,geoFileNames,measFileNames;
+            String[] dendFileNames,/*geoFileNames,*/measFileNames;
         
             //MultiFileDialog dendFiles = new MultiFileDialog (null, true);
-            dendFiles.setTitle("Select image files with dendrite ID");
-            File start = null;                    
+            //dendFiles.setTitle("Select image files with dendrite ID");
+            //File start = null;                    
             
-            if (startDirectory != null)
-                dendFiles.setStartDirectory(new File(startDirectory));
-            dendFiles.setVisible(true);
-            dendFileNames = dendFiles.getSelectionArray();
-            startDirectory = dendFiles.getDirectory();
-            start = new File(startDirectory);
+            //if (startDirectory != null)
+                //dendFiles.setStartDirectory(new File(startDirectory));
+            //dendFiles.setVisible(true);
+            //dendFileNames = dendFiles.getSelectionArray();
+            //startDirectory = dendFiles.getDirectory();
+            //start = new File(startDirectory);
            
+          
             //MultiFileDialog geoFiles = new MultiFileDialog(null,true,start);
-            MultiFileDialog measurements = new MultiFileDialog(null,true,start);
+            //MultiFileDialog measurements = new MultiFileDialog(null,true,start);
             
             //geoFiles.setTitle("Select the image files with geodesic distances");
-            measurements.setTitle("Select the csv file with co-ordinates");
+            //measurements.setTitle("Select the csv file with co-ordinates");
             
             //geoFiles.getFileSelDialog().setCurrentDirectory(start);
             //geoFiles.setVisible(true);
             //geoFileNames = geoFiles.getSelectionArray();
             
-            measurements.getFileSelDialog().setCurrentDirectory(start);
-            measurements.setVisible(true);
-            measFileNames =  measurements.getSelectionArray();
+            //measurements.getFileSelDialog().setCurrentDirectory(start);
+            //measurements.setVisible(true);
+            measFileNames = this.coOrdfNames;
             
-            if( dendFileNames.length != /*geoFileNames.length || geoFileNames.length != */ measFileNames.length)
+            if( dendFileNames != null && measFileNames != null && dendFileNames.length != /*geoFileNames.length || geoFileNames.length != */ measFileNames.length)
                 return;
             int nFiles = dendFileNames.length;
             ImagePlus dendID, geoImg;
