@@ -154,6 +154,7 @@ public class Spine_Geodesic_1 implements PlugIn{
                         }else{
                             this.errFile.add(fName);
                         }
+                        count++;
                     }
     //                    }
                      
@@ -538,7 +539,7 @@ public class Spine_Geodesic_1 implements PlugIn{
           for( Roi roi : rois){
               rect = roi.getBounds();
               slice  = roi.getPosition();
-              //slice = slice <= dendID.getNSlices() ? slice : slice - 1;             //should not be required
+              slice = slice <= dendID.getNSlices() ? slice : slice - 1;             //should not be required
               ImageProcessor ipD = dendID.getStack().getProcessor(slice);
               ipD.setRoi(roi);
               ID = (float)ipD.getStats().max;
