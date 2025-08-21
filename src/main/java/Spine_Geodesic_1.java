@@ -65,7 +65,7 @@ public class Spine_Geodesic_1 implements PlugIn{
         ArrayList <Thread> monitor = new ArrayList();
         int threadCount;
         ArrayList<ImagePlus> dendriteSels = new ArrayList();
-        ArrayList coOrdSels = new ArrayList();
+        ArrayList <File> coOrdSels = new ArrayList();
         ArrayList<String> errFile = new ArrayList();
     ///*this has 2 elements only one for dendrite sel image and other for coresponding spine selection*/
     /*<JTable or JList or ArrayList<String>>*/
@@ -354,16 +354,17 @@ public class Spine_Geodesic_1 implements PlugIn{
                             }
                             ImagePlus out = new ImagePlus();
                             out.setStack(resStk);
-                            boolean fileStatus = IJ.saveAsTiff(out, sourceImg+ destsuffix);
+                            String sourceFileName = sourceImg.getFileInfo().getFilePath();
+                            boolean fileStatus = IJ.saveAsTiff(out, sourceFileName+ destsuffix);
                             
                             if(fileStatus){
-                                System.out.println("File :"+sourceImg+" processed");
-                                success.add(sourceImg);
+                                System.out.println("File :"+sourceFileName +" processed");
+                                //success.add(sourceImg.getFileInfo().getFilePath());
                                 return out;
                             }
                             else{
-                                System.out.println("Error writing File :"+sourceImg);
-                                failure.add(sourceImg);
+                                System.out.println("Error writing File :"+sourceFileName + destsuffix);
+                                //failure.add(sourceImg);
                                 return null;
                             }
                             //img.setStack(resStk);
@@ -414,7 +415,7 @@ public class Spine_Geodesic_1 implements PlugIn{
                         dendID = dendriteSels.get(count);
                         
                         geoImg = convert2geodesic(dendID,"geo1");//new ImagePlus(geoFileNames[count]);
-                        pathName  = (String)coOrdSels.get(count);
+                        pathName  = coOrdSels.get(count).getAbsolutePath();
                         rootName = pathName.split("\\.")[0];
                         datetime = timeTaggedFolderNameGenerator();
                         String resDir = rootName + File.separator + "res" + datetime;
