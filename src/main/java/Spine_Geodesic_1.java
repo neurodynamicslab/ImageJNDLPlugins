@@ -64,7 +64,7 @@ public class Spine_Geodesic_1 implements PlugIn{
         
         ArrayList <Thread> monitor = new ArrayList();
         int threadCount;
-        ArrayList<ImagePlus> dendriteSels = new ArrayList();
+        ArrayList<String> dendriteSels = new ArrayList();
         ArrayList <File> coOrdSels = new ArrayList();
         ArrayList<String> errFile = new ArrayList();
     ///*this has 2 elements only one for dendrite sel image and other for coresponding spine selection*/
@@ -148,8 +148,9 @@ public class Spine_Geodesic_1 implements PlugIn{
                         temp = new File(coOrdFiles[count]);
                         
                         if(dendImg != null && temp.isFile()){
-                            this.dendriteSels.add(dendImg);
+                            this.dendriteSels.add(fName);
                             this.coOrdSels.add(temp);
+                            dendImg.close();
                         }else{
                             this.errFile.add(fName);
                         }
@@ -209,12 +210,13 @@ public class Spine_Geodesic_1 implements PlugIn{
          * @param img
          * @param fname 
          */
-        private ImagePlus convert2geodesic(ImagePlus sourceImg,String destsuffix){
-            ImagePlus img = sourceImg;
-            
-            ArrayList success, failure;
-            success = this.dendriteSels;
-            failure = this.errFile;
+        private ImagePlus convert2geodesic( String sourceImg,String destsuffix){
+            ImagePlus img = new ImagePlus (sourceImg);
+            if (img == null)
+                return img;
+            //ArrayList success, failure;
+            //success = this.dendriteSels;
+            //failure = this.errFile;
            
             double ijMem = (IJ.maxMemory() - IJ.currentMemory())/1000000;
             
@@ -354,16 +356,16 @@ public class Spine_Geodesic_1 implements PlugIn{
                             }
                             ImagePlus out = new ImagePlus();
                             out.setStack(resStk);
-                            String sourceFileName = sourceImg.getFileInfo().getFilePath();
-                            boolean fileStatus = IJ.saveAsTiff(out, sourceFileName+ destsuffix);
+                            //String sourceFileName = sourceImg.getFileInfo().getFilePath();
+                            boolean fileStatus = IJ.saveAsTiff(out, sourceImg+ destsuffix);
                             
                             if(fileStatus){
-                                System.out.println("File :"+sourceFileName +" processed");
+                                System.out.println("File :"+sourceImg +" processed");
                                 //success.add(sourceImg.getFileInfo().getFilePath());
                                 return out;
                             }
                             else{
-                                System.out.println("Error writing File :"+sourceFileName + destsuffix);
+                                System.out.println("Error writing File :"+sourceImg + destsuffix);
                                 //failure.add(sourceImg);
                                 return null;
                             }
@@ -412,9 +414,11 @@ public class Spine_Geodesic_1 implements PlugIn{
                 for(int count = 0 ; count < nFiles ; count ++){
 
 
-                        dendID = dendriteSels.get(count);
+                        //dendID = new ImagePlus (dendriteSels.get(count));
+                        //dendID.getFileInfo().directory = dendriteSels.get(count);
+                        geoImg = convert2geodesic(dendriteSels.get(count),"geo1");//new ImagePlus(geoFileNames[count]);
+                        //dendID.close();
                         
-                        geoImg = convert2geodesic(dendID,"geo1");//new ImagePlus(geoFileNames[count]);
                         pathName  = coOrdSels.get(count).getAbsolutePath();
                         rootName = pathName.split("\\.")[0];
                         datetime = timeTaggedFolderNameGenerator();
@@ -430,7 +434,7 @@ public class Spine_Geodesic_1 implements PlugIn{
                         sumFile = new FileWriter(resDir+"_summary.txt");
                         
                         
-                        
+                        dendID = new ImagePlus (dendriteSels.get(count));
                         //dendID.show();
                         ImagePlus temp = dendID.duplicate();
                         StackConverter converter = new StackConverter(temp);
@@ -502,7 +506,7 @@ public class Spine_Geodesic_1 implements PlugIn{
                 //        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
                 BufferedReader reader = new BufferedReader(cordFile);
                 String ln = reader.readLine();
-                System.out.println(ln);
+               // System.out.println(ln);
                 if(ln == null )
                     return null;
                 while( (ln = reader.readLine()) != null){
@@ -738,8 +742,9 @@ public class Spine_Geodesic_1 implements PlugIn{
              roiFile = new File(fNames[2]);
              if(dendFile != null ){
                 if(!roiFile.isFile()){
-                    this.dendriteSels.add(dendFile);
+                    this.dendriteSels.add(fNames[1]);
                     this.coOrdSels.add(roiFile);
+                    dendFile.close();
                 }else{
                     this.errFile.add(fNames[2]);
                 }
