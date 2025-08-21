@@ -396,9 +396,8 @@ public class Spine_Geodesic_1 implements PlugIn{
             
         
             int nFiles = dendriteSels.size();
-            String pathName, rootName, timeName;
-            LocalDateTime time = LocalDateTime.now();
-            String datetime = ""+time.getDayOfMonth() +time.getMonth().toString().substring(0, 3)+File.separator + time.getHour()+"_"+time.getMinute();
+            String pathName, rootName;
+            String datetime; // = timeTaggedFolderNameGenerator();
             
             if( dendriteSels != null && coOrdSels != null && nFiles != coOrdSels.size())
                 return;
@@ -416,6 +415,7 @@ public class Spine_Geodesic_1 implements PlugIn{
                         geoImg = convert2geodesic(dendID,"geo1");//new ImagePlus(geoFileNames[count]);
                         pathName  = (String)coOrdSels.get(count);
                         rootName = pathName.split("\\.")[0];
+                        datetime = timeTaggedFolderNameGenerator();
                         String resDir = rootName + File.separator + "res" + datetime;
                         
                         File testDir = new File(resDir);
@@ -485,6 +485,12 @@ public class Spine_Geodesic_1 implements PlugIn{
             }
             
             
+    }
+
+    private String timeTaggedFolderNameGenerator() {
+        LocalDateTime time = LocalDateTime.now();
+        String datetime = ""+time.getDayOfMonth() +time.getMonth().toString().substring(0, 3)+File.separator + time.getHour()+"_"+time.getMinute();
+        return datetime;
     }
 
     private ArrayList<Roi> getRois(FileReader cordFile) {
