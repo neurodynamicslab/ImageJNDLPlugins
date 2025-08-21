@@ -394,38 +394,11 @@ public class Spine_Geodesic_1 implements PlugIn{
      */
         private void measureDends() {
             
-            
-            //String[] dendFileNames,/*geoFileNames,*/measFileNames;
         
-            //MultiFileDialog dendFileDialog = new MultiFileDialog (null, true);
-            //dendFiles.setTitle("Select image files with dendrite ID");
-            //File start = null;                    
-            
-            //if (startDirectory != null)
-                //dendFiles.setStartDirectory(new File(startDirectory));
-            //dendFiles.setVisible(true);
-            //dendFileNames = dendFileDialog.getSelectionArray();
-            //startDirectory = dendFileDialog.getDirectory();
-            //start = new File(startDirectory);
-           
-          
-            //MultiFileDialog geoFiles = new MultiFileDialog(null,true,start);
-            //MultiFileDialog measurements = new MultiFileDialog(null,true,start);
-            
-            //geoFiles.setTitle("Select the image files with geodesic distances");
-            //measurements.setTitle("Select the csv file with co-ordinates");
-            
-            //geoFiles.getFileSelDialog().setCurrentDirectory(start);
-            //geoFiles.setVisible(true);
-            //geoFileNames = geoFiles.getSelectionArray();
-            
-            //measurements.getFileSelDialog().setCurrentDirectory(start);
-            //measurements.setVisible(true);
-           // 
             int nFiles = dendriteSels.size();
             String pathName, rootName, timeName;
             LocalDateTime time = LocalDateTime.now();
-            String datetime = ""+ time.getDayOfMonth() +"_"+ time.getMonth()+"_" + time.getHour();
+            String datetime = ""+time.getDayOfMonth() +time.getMonth().toString().substring(0, 3)+File.separator + time.getHour()+"_"+time.getMinute();
             
             if( dendriteSels != null && coOrdSels != null && nFiles != coOrdSels.size())
                 return;
@@ -444,9 +417,10 @@ public class Spine_Geodesic_1 implements PlugIn{
                         pathName  = (String)coOrdSels.get(count);
                         rootName = pathName.split("\\.")[0];
                         String resDir = rootName + File.separator + "res" + datetime;
+                        
                         File testDir = new File(resDir);
-                            if(!testDir.exists())
-                                testDir.mkdirs();
+                        if(!testDir.exists())
+                              testDir.mkdirs();
                                 
                         cordFile = new FileReader(pathName);
                         outFile =  new FileWriter(resDir+"_res.txt");
@@ -755,9 +729,9 @@ public class Spine_Geodesic_1 implements PlugIn{
              dendFile = new ImagePlus(fNames[1]);
              roiFile = new File(fNames[2]);
              if(dendFile != null ){
-                if(roiFile != null){
+                if(!roiFile.isFile()){
                     this.dendriteSels.add(dendFile);
-                    this.roiList.add(roiFile);
+                    this.coOrdSels.add(roiFile);
                 }else{
                     this.errFile.add(fNames[2]);
                 }
