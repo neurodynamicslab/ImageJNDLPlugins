@@ -64,9 +64,9 @@ public class Spine_Geodesic_1 implements PlugIn{
         
         ArrayList <Thread> monitor = new ArrayList();
         int threadCount;
-        ArrayList<ImagePlus> dendriteSels;
-        ArrayList coOrdSels;
-        ArrayList<String> errFile;
+        ArrayList<ImagePlus> dendriteSels = new ArrayList();
+        ArrayList coOrdSels = new ArrayList();
+        ArrayList<String> errFile = new ArrayList();
     ///*this has 2 elements only one for dendrite sel image and other for coresponding spine selection*/
     /*<JTable or JList or ArrayList<String>>*/
     // for storing the measurements from the images
@@ -80,7 +80,7 @@ public class Spine_Geodesic_1 implements PlugIn{
         int roiWidth = 2 ;// ROI width over which to search for max the geodesic distance
         private final boolean inclDepth = true; //set this to true for searching for max geodesic dist in Z
         private ArrayList roiList;
-        private MultiFileDialog coOrdFilesDialog;
+        private MultiFileDialog coOrdFilesDialog = new MultiFileDialog(null,true);
         
 
 //	@Override
@@ -118,8 +118,9 @@ public class Spine_Geodesic_1 implements PlugIn{
                         return;
                     }
                 }else if(option == javax.swing.JOptionPane.NO_OPTION){
-                        
-                    dendFileDialog.setStartDirectory(new File(startDirectory));
+                     if(startDirectory != null && !startDirectory.isEmpty())   
+                        dendFileDialog.setStartDirectory(new File(startDirectory));
+                    dendFileDialog.setTitle("Please select the image files with identified dendrites");
                     this.dendFileDialog.setVisible(true);
                     selection = dendFileDialog.getSelectionArray();
                     
@@ -397,7 +398,7 @@ public class Spine_Geodesic_1 implements PlugIn{
         
             int nFiles = dendriteSels.size();
             String pathName, rootName;
-            String datetime; // = timeTaggedFolderNameGenerator();
+            String datetime; 
             
             if( dendriteSels != null && coOrdSels != null && nFiles != coOrdSels.size())
                 return;
