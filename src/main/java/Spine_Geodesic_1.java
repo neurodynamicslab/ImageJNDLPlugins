@@ -331,24 +331,7 @@ public class Spine_Geodesic_1 implements PlugIn{
                                     depth = endZ - startZ +1;
                                     maskStk = maskStk.crop(bRect.x, bRect.y,startZ ,bRect.width, bRect.height,depth);
                                     
-                                     if (true /*this.reScaleZ*/){
-                                        ij.Prefs.avoidResliceInterpolation = false;
-                                        ImagePlus tempImp = new ImagePlus();
-                                        tempImp.setStack(maskStk);
-                                        tempImp.getCalibration().pixelDepth = 3.0;
-                                        
-                                        Slicer slicer = new Slicer();
-                                        slicer.reslice(tempImp);
-                                        ij.Prefs.avoidResliceInterpolation = false;
-                                        slicer.reslice(tempImp);
-                                        //tempImp.show();
-                                        IJ.saveAs(tempImp,"jpg", "resliced");
-                                        int nSlicesNew = tempImp.getStack().size();
-                                        SubstackMaker stkMkr = new SubstackMaker();
-                                        stkMkr.makeSubstack(tempImp, ""+"1-"+nSlicesNew+"-3");
-                                        IJ.saveAs(tempImp,"jpg","reslicedresampled");
-                                        maskStk = slicer.reslice(tempImp).getStack();
-                                    }
+                                    
                                     
                                     markStk = maskStk.duplicate();
                                     for (int count = 1 ; count <= depth ; count++){
@@ -356,11 +339,29 @@ public class Spine_Geodesic_1 implements PlugIn{
                                         markStk.getProcessor(count).set(0);
                                     }
                                     markStk.getProcessor(minSqinSlice-startZ).putPixelValue(closePoint.x-bRect.x,closePoint.y-bRect.y, 255);
-
+                                    
 
                                     GeodesicDistanceTransform3D algo = new GeodesicDistanceTransform3DFloat(chamferMask, true);
                                     DefaultAlgoListener.monitor(algo);
-
+                                    
+//                                    if (true /*this.reScaleZ*/){
+//                                        ij.Prefs.avoidResliceInterpolation = false;
+//                                        ImagePlus tempImp = new ImagePlus();
+//                                        tempImp.setStack(maskStk);
+//                                        tempImp.getCalibration().pixelDepth = 3.0;
+//                                        
+//                                        Slicer slicer = new Slicer();
+//                                        slicer.reslice(tempImp);
+//                                        ij.Prefs.avoidResliceInterpolation = false;
+//                                        slicer.reslice(tempImp);
+//                                        //tempImp.show();
+//                                        IJ.saveAs(tempImp,"jpg", "resliced");
+//                                        int nSlicesNew = tempImp.getStack().size();
+//                                        SubstackMaker stkMkr = new SubstackMaker();
+//                                        stkMkr.makeSubstack(tempImp, ""+"1-"+nSlicesNew+"-3");
+//                                        IJ.saveAs(tempImp,"jpg","reslicedresampled");
+//                                        maskStk = slicer.reslice(tempImp).getStack();
+//                                    }
 
                                     // Compute distance on specified images
 
@@ -380,7 +381,7 @@ public class Spine_Geodesic_1 implements PlugIn{
                             ImagePlus out = new ImagePlus();
                             out.setStack(resStk);
                             //String sourceFileName = sourceImg.getFileInfo().getFilePath();
-                            boolean fileStatus = IJ.saveAsTiff(out, sourceImg+ destsuffix);
+                            boolean fileStatus = IJ.saveAsTiff(out, sourceImg.substring(0, sourceImg.lastIndexOf(".")-1)+ destsuffix);
                             
                             if(fileStatus){
                                 System.out.println("File :"+sourceImg +" processed");
@@ -443,10 +444,11 @@ public class Spine_Geodesic_1 implements PlugIn{
                         //dendID.close();
                         
                         pathName = coOrdSels.get(count).getAbsolutePath();
-                        rootName = pathName.split(coOrdSels.get(count).getName())[0];
+                        String fName = coOrdSels.get(count).getName();
+                        rootName = pathName.substring(0,pathName.lastIndexOf(File.separator));
                         datetime = timeTaggedFolderNameGenerator();                             //provides a name with the date and month 
                                                                                                 // in the following format (dd Mon File separator hh_mm)
-                        String resDir = rootName + File.separator + "res" + datetime;
+                        String resDir = rootName + "res" + datetime;
                         
                         File testDir = new File(resDir);
                         if(!testDir.exists())
