@@ -15,6 +15,8 @@ import ij.ImageStack;
 import ij.gui.Roi;
 import ij.gui.ShapeRoi;
 import ij.plugin.PlugIn;
+import ij.plugin.Slicer;
+import ij.plugin.SubstackMaker;
 import ij.plugin.filter.ThresholdToSelection;
 import ij.process.Blitter;
 import ij.process.ByteProcessor;
@@ -328,6 +330,26 @@ public class Spine_Geodesic_1 implements PlugIn{
                                     maskStk.setRoi(new Rectangle(bRect));
                                     depth = endZ - startZ +1;
                                     maskStk = maskStk.crop(bRect.x, bRect.y,startZ ,bRect.width, bRect.height,depth);
+                                    
+                                     if (true /*this.reScaleZ*/){
+                                        ij.Prefs.avoidResliceInterpolation = false;
+                                        ImagePlus tempImp = new ImagePlus();
+                                        tempImp.setStack(maskStk);
+                                        tempImp.getCalibration().pixelDepth = 3.0;
+                                        
+                                        Slicer slicer = new Slicer();
+                                        slicer.reslice(tempImp);
+                                        ij.Prefs.avoidResliceInterpolation = false;
+                                        slicer.reslice(tempImp);
+                                        //tempImp.show();
+                                        IJ.saveAs(tempImp,"jpg", "resliced");
+                                        int nSlicesNew = tempImp.getStack().size();
+                                        SubstackMaker stkMkr = new SubstackMaker();
+                                        stkMkr.makeSubstack(tempImp, ""+"1-"+nSlicesNew+"-3");
+                                        IJ.saveAs(tempImp,"jpg","reslicedresampled");
+                                        maskStk = slicer.reslice(tempImp).getStack();
+                                    }
+                                    
                                     markStk = maskStk.duplicate();
                                     for (int count = 1 ; count <= depth ; count++){
                                         markStk.getProcessor(count).convertToByteProcessor();
@@ -420,9 +442,10 @@ public class Spine_Geodesic_1 implements PlugIn{
                         geoImg = convert2geodesic(dendriteSels.get(count),"geo1");//new ImagePlus(geoFileNames[count]);
                         //dendID.close();
                         
-                        pathName  = coOrdSels.get(count).getAbsolutePath();
-                        rootName = pathName.split("\\.")[0];
-                        datetime = timeTaggedFolderNameGenerator();
+                        pathName = coOrdSels.get(count).getAbsolutePath();
+                        rootName = pathName.split(coOrdSels.get(count).getName())[0];
+                        datetime = timeTaggedFolderNameGenerator();                             //provides a name with the date and month 
+                                                                                                // in the following format (dd Mon File separator hh_mm)
                         String resDir = rootName + File.separator + "res" + datetime;
                         
                         File testDir = new File(resDir);
@@ -466,7 +489,7 @@ public class Spine_Geodesic_1 implements PlugIn{
                             outPut += nBranches[tCount]*aveLeng[tCount]+"\n";
                             
                         }
-                        System.out.print("Finished the skeleton");
+                        System.out.print("Finished the skeleton\n");
                         resFile.write("TreeID\tTotalVoxels\tnBranches\tAveLength\tnJunctions\tTotLen\n");
                         resFile.write(outPut);
                         resFile.close();
@@ -484,6 +507,7 @@ public class Spine_Geodesic_1 implements PlugIn{
                         sumFile.close();
                         dendID.close();
                         geoImg.close();
+                        cordFile.close();
                 }
             }catch (FileNotFoundException ex) {
                     Logger.getLogger(Spine_Geodesic.class.getName()).log(Level.SEVERE, null, ex);
@@ -496,7 +520,9 @@ public class Spine_Geodesic_1 implements PlugIn{
 
     private String timeTaggedFolderNameGenerator() {
         LocalDateTime time = LocalDateTime.now();
-        String datetime = ""+time.getDayOfMonth() +time.getMonth().toString().substring(0, 3)+File.separator + time.getHour()+"_"+time.getMinute();
+        int dayOfMon = time.getDayOfMonth();
+        String dOMon = (dayOfMon > 9 ) ? ""+dayOfMon : "0"+dayOfMon;
+        String datetime = ""+dOMon +time.getMonth().toString().substring(0, 3)+File.separator + time.getHour()+"_"+time.getMinute();
         return datetime;
     }
 
