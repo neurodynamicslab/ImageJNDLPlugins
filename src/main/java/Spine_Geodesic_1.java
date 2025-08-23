@@ -14,6 +14,7 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.Roi;
 import ij.gui.ShapeRoi;
+import ij.measure.Calibration;
 import ij.plugin.PlugIn;
 import ij.plugin.Slicer;
 import ij.plugin.SubstackMaker;
@@ -160,6 +161,35 @@ public class Spine_Geodesic_1 implements PlugIn{
                     }
     //                    }
                      
+                }else if(option == javax.swing.JOptionPane.CANCEL_OPTION){  //Interpreting this as test
+                    
+                    JFileChooser FC = new JFileChooser();
+                    FC.setMultiSelectionEnabled(false);
+                    
+                    int FCres = FC.showOpenDialog(null);
+                    
+                    if (FCres != JFileChooser.CANCEL_OPTION){
+                        
+                        File Imagefile = FC.getSelectedFile();
+                        if(Imagefile.isFile()){
+                            ImagePlus imageIn = new ImagePlus(Imagefile.getAbsolutePath());
+                            if(imageIn != null){
+                                 imageIn = this.expandZ(imageIn, 3);
+                                 imageIn.setTitle("Expanded");
+                                 imageIn.show();
+                                 
+                                 ImagePlus tmp = this.subSampleZ(imageIn, 3);
+                                 imageIn.setTitle("Subsampled");
+                                 tmp.show();
+                            }else
+                                return;
+                                
+                        }
+                                
+                      
+                    }
+                    
+                    
                 }
                 
                 
@@ -221,6 +251,11 @@ public class Spine_Geodesic_1 implements PlugIn{
             //success = this.dendriteSels;
             //failure = this.errFile;
            
+           //Place holder for expansion
+          
+           img = this.expandZ(img, 3.0);
+          
+            
             double ijMem = (IJ.maxMemory() - IJ.currentMemory())/1000000;
             
             double fileSz = img.getSizeInBytes()/1000000;
@@ -239,7 +274,7 @@ public class Spine_Geodesic_1 implements PlugIn{
                             ThresholdToSelection roiCreator = new ThresholdToSelection();
                             ChamferMask3D chamferMask;
                             
-                            chamferMask =  new ChamferMask3DW6(10,14,17,2,24,30);
+                            chamferMask = ChamferMask3D.SVENSSON_3_4_5_7; //new ChamferMask3DW6(10,14,17,2,24,30);
 
                             StackStatistics stat = new StackStatistics(img);
                             int lowerInt = stat.min == 0 ? 1 :(int) Math.floor(stat.min) ;              //ideally this can be set to 1 as the enumeration of objects are integer
@@ -344,24 +379,7 @@ public class Spine_Geodesic_1 implements PlugIn{
                                     GeodesicDistanceTransform3D algo = new GeodesicDistanceTransform3DFloat(chamferMask, true);
                                     DefaultAlgoListener.monitor(algo);
                                     
-//                                    if (true /*this.reScaleZ*/){
-//                                        ij.Prefs.avoidResliceInterpolation = false;
-//                                        ImagePlus tempImp = new ImagePlus();
-//                                        tempImp.setStack(maskStk);
-//                                        tempImp.getCalibration().pixelDepth = 3.0;
-//                                        
-//                                        Slicer slicer = new Slicer();
-//                                        slicer.reslice(tempImp);
-//                                        ij.Prefs.avoidResliceInterpolation = false;
-//                                        slicer.reslice(tempImp);
-//                                        //tempImp.show();
-//                                        IJ.saveAs(tempImp,"jpg", "resliced");
-//                                        int nSlicesNew = tempImp.getStack().size();
-//                                        SubstackMaker stkMkr = new SubstackMaker();
-//                                        stkMkr.makeSubstack(tempImp, ""+"1-"+nSlicesNew+"-3");
-//                                        IJ.saveAs(tempImp,"jpg","reslicedresampled");
-//                                        maskStk = slicer.reslice(tempImp).getStack();
-//                                    }
+                                    
 
                                     // Compute distance on specified images
 
@@ -383,13 +401,16 @@ public class Spine_Geodesic_1 implements PlugIn{
                             //String sourceFileName = sourceImg.getFileInfo().getFilePath();
                             boolean fileStatus = IJ.saveAsTiff(out, sourceImg.substring(0, sourceImg.lastIndexOf(".")-1)+ destsuffix);
                             
+                           ///Place holder for z- shrinking code
+                            out =this.subSampleZ(out,3);           
+                            
                             if(fileStatus){
                                 System.out.println("File :"+sourceImg +" processed");
                                 //success.add(sourceImg.getFileInfo().getFilePath());
                                 return out;
                             }
                             else{
-                                System.out.println("Error writing File :"+sourceImg + destsuffix);
+                                System.out.println("Error writing File :"+sourceImg.substring(0, sourceImg.lastIndexOf(".")-1) + destsuffix);
                                 //failure.add(sourceImg);
                                 return null;
                             }
@@ -445,17 +466,19 @@ public class Spine_Geodesic_1 implements PlugIn{
                         
                         pathName = coOrdSels.get(count).getAbsolutePath();
                         String fName = coOrdSels.get(count).getName();
+                        if(!fName.isEmpty())
+                           fName = fName.substring(0,fName.lastIndexOf("."));
                         rootName = pathName.substring(0,pathName.lastIndexOf(File.separator));
                         datetime = timeTaggedFolderNameGenerator();                             //provides a name with the date and month 
                                                                                                 // in the following format (dd Mon File separator hh_mm)
-                        String resDir = rootName + "res" + datetime;
+                        String resDir = rootName + File.separator+"res" + datetime;
                         
                         File testDir = new File(resDir);
                         if(!testDir.exists())
                               testDir.mkdirs();
-                                
+                        resDir += File.separator;        
                         cordFile = new FileReader(pathName);
-                        outFile =  new FileWriter(resDir+"_res.txt");
+                        outFile =  new FileWriter(resDir+fName+"_res.txt");
                         resFile = new FileWriter(resDir+"_skl.txt");
                         sumFile = new FileWriter(resDir+"_summary.txt");
                         
@@ -686,15 +709,15 @@ public class Spine_Geodesic_1 implements PlugIn{
                     if(prevSp == null){
                         prevSp = spine;
                         if(nextIdx < totalSp){                               
-                            nextSp = distSorted.get(nextIdx);
-                            nextDist = nextSp.getDistFromIdx()- spine.getDistFromIdx(); //distance to the next spine
-                            cartDist = measureCartDist(nextSp,spine); //Calcualte the cart distance and compare
-                            //nextDist = (cartDist < nextDist )? nextDist : -cartDist;      //-ive sign is to identify the incorrect dist       
-                            spine.setNearNeighDist(nextDist);
-                            spine.setFarthestNeighDist(nextDist);
-                            spine.setTypeFlag(SpineDescriptor.spineType.First);
+                                nextSp = distSorted.get(nextIdx);
+                                nextDist = nextSp.getDistFromIdx()- spine.getDistFromIdx(); //distance to the next spine
+                                cartDist = measureCartDist(nextSp,spine); //Calcualte the cart distance and compare
+                                //nextDist = (cartDist < nextDist )? nextDist : -cartDist;      //-ive sign is to identify the incorrect dist       
+                                spine.setNearNeighDist(nextDist);
+                                spine.setFarthestNeighDist(nextDist);
+                                spine.setTypeFlag(SpineDescriptor.spineType.First);
                         }else{
-                            spine.setTypeFlag(SpineDescriptor.spineType.Singleton);
+                                spine.setTypeFlag(SpineDescriptor.spineType.Singleton);
                         }
                     }else{
                         prevDist = spine.getDistFromIdx() - prevSp.getDistFromIdx();  //distance from the previous spine
@@ -781,6 +804,46 @@ public class Spine_Geodesic_1 implements PlugIn{
                  this.errFile.add(fNames[1]);
              }
         }   
+    }
+
+    private ImagePlus expandZ(ImagePlus img, double d) {
+        //throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        
+        Slicer slicer = new Slicer();
+        Calibration cal = img.getCalibration();
+        
+        //ij.Prefs.set("AVOID_RESLICE_INTERPOLATION",  false); //interpolate to z aspect
+        ij.Prefs.avoidResliceInterpolation = false;
+        
+        ij.Prefs.savePreferences();
+        
+        cal.pixelDepth = 3.0 ;
+        cal.pixelHeight = 1.0;
+        cal.pixelDepth = 1.0;
+        img.setCalibration(cal);
+        
+        ImagePlus outPut = slicer.reslice(img);
+        
+        //ij.Prefs.set("AVOID_RESLICE_INTERPOLATION",true);
+//        ij.Prefs.avoidResliceInterpolation = true;
+//        ij.Prefs.savePreferences();
+//        cal.pixelDepth = 1.0;
+//        outPut.setCalibration(cal);
+//
+//        outPut = slicer.reslice(outPut);
+        
+        return outPut;
+    }
+
+    private ImagePlus subSampleZ(ImagePlus out, int i) {
+        //throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        
+        SubstackMaker stkMaker  = new SubstackMaker();
+        int maxSlice  = out.getStack().size();
+        String cmd = "0-"+maxSlice+"-"+i;
+            
+        
+        return stkMaker.makeSubstack(out, cmd);
     }
     class distComparator implements Comparator<SpineDescriptor>{
 
