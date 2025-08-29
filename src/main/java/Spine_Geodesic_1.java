@@ -16,6 +16,7 @@ import ij.gui.Roi;
 import ij.gui.ShapeRoi;
 import ij.measure.Calibration;
 import ij.plugin.PlugIn;
+import ij.plugin.Resizer;
 import ij.plugin.Slicer;
 import ij.plugin.SubstackMaker;
 import ij.plugin.filter.ThresholdToSelection;
@@ -253,7 +254,7 @@ public class Spine_Geodesic_1 implements PlugIn{
            
            //Place holder for expansion
           
-           img = this.expandZ(img, 3.0);
+           //img = this.expandZ(img, 3.0);
           
             
             double ijMem = (IJ.maxMemory() - IJ.currentMemory())/1000000;
@@ -365,18 +366,21 @@ public class Spine_Geodesic_1 implements PlugIn{
                                     maskStk.setRoi(new Rectangle(bRect));
                                     depth = endZ - startZ +1;
                                     maskStk = maskStk.crop(bRect.x, bRect.y,startZ ,bRect.width, bRect.height,depth);
-                                    
-                                    
-                                    
+                                    ImagePlus mask = new ImagePlus();
+                                    mask.setStack(maskStk);
+                                    //mask = expandZ(mask,3);
+                                    mask = this.prepareMask(mask);
+                                    maskStk = mask.getImageStack();
                                     markStk = maskStk.duplicate();
-                                    for (int count = 1 ; count <= depth ; count++){
+                                    int newDepth = markStk.getSize(); // this will reflect if the changed depth
+                                    for (int count = 1 ; count <= newDepth ; count++){
                                         markStk.getProcessor(count).convertToByteProcessor();
                                         markStk.getProcessor(count).set(0);
                                     }
-                                    markStk.getProcessor(minSqinSlice-startZ).putPixelValue(closePoint.x-bRect.x,closePoint.y-bRect.y, 255);
+                                    markStk.getProcessor((minSqinSlice-startZ)).putPixelValue(closePoint.x-bRect.x,closePoint.y-bRect.y, 255);
                                     
-
-                                    GeodesicDistanceTransform3D algo = new GeodesicDistanceTransform3DFloat(chamferMask, true);
+                                    boolean normaliseWeights = false;
+                                    GeodesicDistanceTransform3D algo = new GeodesicDistanceTransform3DFloat(chamferMask, normaliseWeights);
                                     DefaultAlgoListener.monitor(algo);
                                     
                                     
@@ -384,6 +388,9 @@ public class Spine_Geodesic_1 implements PlugIn{
                                     // Compute distance on specified images
 
                                     result = algo.geodesicDistanceMap(markStk, maskStk);
+                                    //ImagePlus temp = new ImagePlus();
+                                    //temp.setStack(result);
+                                    //result = this.subSampleZ(temp, 3).getImageStack();
                                     int endslice = endZ+1;
                                     for (int slice = startZ +1,count = 1 ; slice <= endslice ; slice++, count++){
                                         resStk.getProcessor(slice).copyBits(result.getProcessor(count), bRect.x, bRect.y, Blitter.OR);
@@ -399,10 +406,12 @@ public class Spine_Geodesic_1 implements PlugIn{
                             ImagePlus out = new ImagePlus();
                             out.setStack(resStk);
                             //String sourceFileName = sourceImg.getFileInfo().getFilePath();
-                            boolean fileStatus = IJ.saveAsTiff(out, sourceImg.substring(0, sourceImg.lastIndexOf(".")-1)+ destsuffix);
+                            
+                            //out =this.subSampleZ(out,3);    
+                            boolean fileStatus = IJ.saveAsTiff(out, sourceImg.substring(0, sourceImg.lastIndexOf("."))+ destsuffix);
                             
                            ///Place holder for z- shrinking code
-                            out =this.subSampleZ(out,3);           
+                            //out =this.subSampleZ(out,3);           
                             
                             if(fileStatus){
                                 System.out.println("File :"+sourceImg +" processed");
@@ -808,21 +817,11 @@ public class Spine_Geodesic_1 implements PlugIn{
 
     private ImagePlus expandZ(ImagePlus img, double d) {
         //throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-        
-        Slicer slicer = new Slicer();
-        Calibration cal = img.getCalibration();
-        
-        //ij.Prefs.set("AVOID_RESLICE_INTERPOLATION",  false); //interpolate to z aspect
-        ij.Prefs.avoidResliceInterpolation = false;
-        
-        ij.Prefs.savePreferences();
-        
-        cal.pixelDepth = 3.0 ;
-        cal.pixelHeight = 1.0;
-        cal.pixelDepth = 1.0;
-        img.setCalibration(cal);
-        
-        ImagePlus outPut = slicer.reslice(img);
+        int curDep = img.getImageStack().size();
+        int newDepth = (int)(curDep * d);
+        Resizer resizer = new Resizer();
+        ImagePlus outPut = resizer.zScale(img, newDepth, ImageProcessor.NONE);
+        //ImagePlus outPut = slicer.reslice(img);
         
         //ij.Prefs.set("AVOID_RESLICE_INTERPOLATION",true);
 //        ij.Prefs.avoidResliceInterpolation = true;
@@ -840,10 +839,31 @@ public class Spine_Geodesic_1 implements PlugIn{
         
         SubstackMaker stkMaker  = new SubstackMaker();
         int maxSlice  = out.getStack().size();
-        String cmd = "0-"+maxSlice+"-"+i;
+        String cmd = "1-"+maxSlice+"-"+i;
             
         
         return stkMaker.makeSubstack(out, cmd);
+    }
+
+    private ImagePlus prepareMask(ImagePlus mask) {
+        //throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+  
+        ImageStack cleanStack = mask.getImageStack();
+       
+        int nSlices = cleanStack.getSize();
+        ImageProcessor ip;
+        ByteProcessor clnMask;
+        
+        for(int count = 1 ; count <= nSlices ; count++){
+            
+            ip = cleanStack.getProcessor(count);
+            ip.setThreshold(1, 255);
+            clnMask = ip.createMask();
+            cleanStack.setProcessor(clnMask, count);
+        }
+        
+        mask.setStack(cleanStack);
+        return mask;
     }
     class distComparator implements Comparator<SpineDescriptor>{
 
