@@ -377,6 +377,9 @@ public String  setCloseAction(ActionListener Instance, String Cmd){
      * @param startDirectory the startDirectory to set
      */
     public void setStartDirectory(File startDirectory) {
-        this.startDirectory = startDirectory;
+        if (startDirectory == null)
+            return;
+        MultiFileDialog.startDirectory = startDirectory;
+        this.FileSelDialog.setCurrentDirectory(startDirectory);
     }
 }

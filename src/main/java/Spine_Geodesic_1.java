@@ -85,6 +85,7 @@ public class Spine_Geodesic_1 implements PlugIn{
         private final boolean inclDepth = true; //set this to true for searching for max geodesic dist in Z
         private ArrayList roiList;
         private MultiFileDialog coOrdFilesDialog = new MultiFileDialog(null,true);
+        private double zScale = 3.0;
         
 
 //	@Override
@@ -293,7 +294,7 @@ public class Spine_Geodesic_1 implements PlugIn{
 
 
                             for (int number = lowerInt ; number <= highInt ; number++){
-
+                                 IJ.showProgress(number, highInt);
                                 //ImagePlus marker;
                                 ImageProcessor ip;
                                 ByteProcessor slMask;
@@ -368,7 +369,7 @@ public class Spine_Geodesic_1 implements PlugIn{
                                     maskStk = maskStk.crop(bRect.x, bRect.y,startZ ,bRect.width, bRect.height,depth);
                                     ImagePlus mask = new ImagePlus();
                                     mask.setStack(maskStk);
-                                    //mask = expandZ(mask,3);
+                                    mask = expandZ(mask,this.zScale);
                                     mask = this.prepareMask(mask);
                                     maskStk = mask.getImageStack();
                                     markStk = maskStk.duplicate();
@@ -377,7 +378,7 @@ public class Spine_Geodesic_1 implements PlugIn{
                                         markStk.getProcessor(count).convertToByteProcessor();
                                         markStk.getProcessor(count).set(0);
                                     }
-                                    markStk.getProcessor((minSqinSlice-startZ)).putPixelValue(closePoint.x-bRect.x,closePoint.y-bRect.y, 255);
+                                    markStk.getProcessor((minSqinSlice-startZ)*(int)zScale).putPixelValue(closePoint.x-bRect.x,closePoint.y-bRect.y, 255);
                                     
                                     boolean normaliseWeights = false;
                                     GeodesicDistanceTransform3D algo = new GeodesicDistanceTransform3DFloat(chamferMask, normaliseWeights);
@@ -388,9 +389,9 @@ public class Spine_Geodesic_1 implements PlugIn{
                                     // Compute distance on specified images
 
                                     result = algo.geodesicDistanceMap(markStk, maskStk);
-                                    //ImagePlus temp = new ImagePlus();
-                                    //temp.setStack(result);
-                                    //result = this.subSampleZ(temp, 3).getImageStack();
+                                    ImagePlus temp = new ImagePlus();
+                                    temp.setStack(result);
+                                    result = this.subSampleZ(temp, (int) zScale).getImageStack();
                                     int endslice = endZ+1;
                                     for (int slice = startZ +1,count = 1 ; slice <= endslice ; slice++, count++){
                                         resStk.getProcessor(slice).copyBits(result.getProcessor(count), bRect.x, bRect.y, Blitter.OR);
@@ -487,9 +488,9 @@ public class Spine_Geodesic_1 implements PlugIn{
                               testDir.mkdirs();
                         resDir += File.separator;        
                         cordFile = new FileReader(pathName);
-                        outFile =  new FileWriter(resDir+fName+"_res.txt");
-                        resFile = new FileWriter(resDir+"_skl.txt");
-                        sumFile = new FileWriter(resDir+"_summary.txt");
+                        outFile =  new FileWriter(resDir+"res_"+fName+".txt");
+                        resFile = new FileWriter(resDir+"skl_"+fName+".txt");
+                        sumFile = new FileWriter(resDir+"summary_"+fName+".txt");
                         
                         
                         dendID = new ImagePlus (dendriteSels.get(count));
