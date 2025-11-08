@@ -213,7 +213,7 @@ public class Spine_Geodesic_1 implements PlugIn{
 	public static void main(String[] args) throws Exception {
 		// set the plugins.dir property to make the plugin appear in the Plugins menu
 		// see: https://stackoverflow.com/a/7060464/1207769
-		Class<?> clazz = Spine_Geodesic.class;
+		Class<?> clazz = Spine_Geodesic_1.class;
 		java.net.URL url = clazz.getProtectionDomain().getCodeSource().getLocation();
 		java.io.File file = new java.io.File(url.toURI());
 		System.setProperty("plugins.dir", file.getAbsolutePath());
