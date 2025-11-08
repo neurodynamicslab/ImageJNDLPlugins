@@ -571,16 +571,20 @@ public class Spine_Geodesic_1 implements PlugIn{
                // System.out.println(ln);
                 if(ln == null )
                     return null;
+                String [] fragments;
                 while( (ln = reader.readLine()) != null){
-                    float xf =  Float.parseFloat(ln.split(",")[8]) - roiWidth/2;
-                    float yf =  Float.parseFloat(ln.split(",")[9]) - roiWidth/2;
-                    float zf =  Float.parseFloat(ln.split(",")[10]);
-                    int position = zf < 1 ? 1 : Math.round(zf);
-                    xf = (xf < 0 ) ? 0 : xf;
-                    yf = (yf < 0 ) ? 0 : yf;
-                    Roi roi = new Roi(xf,yf,roiWidth,roiWidth);
-                    roi.setPosition(position);
-                    rois.add(roi);
+                    fragments = ln.split(",");
+                    if(fragments[4].equalsIgnoreCase("spine")){
+                        float xf =  Float.parseFloat(fragments[8]) - roiWidth/2;
+                        float yf =  Float.parseFloat(fragments[9]) - roiWidth/2;
+                        float zf =  Float.parseFloat(fragments[10]);
+                        int position = zf < 1 ? 1 : Math.round(zf);
+                        xf = (xf < 0 ) ? 0 : xf;
+                        yf = (yf < 0 ) ? 0 : yf;
+                        Roi roi = new Roi(xf,yf,roiWidth,roiWidth);
+                        roi.setPosition(position);
+                        rois.add(roi);
+                    }
                 }               
             } catch (IOException ex) {
                 Logger.getLogger(Spine_Geodesic.class.getName()).log(Level.SEVERE, null, ex);
@@ -596,6 +600,8 @@ public class Spine_Geodesic_1 implements PlugIn{
           Rectangle rect;
           int count = 1 ,slice;
           float ID, dist;
+          Dendrites.clear();
+          SpineData.clear();
           //ArrayList denDist;
           for( Roi roi : rois){
               rect = roi.getBounds();
@@ -639,6 +645,7 @@ public class Spine_Geodesic_1 implements PlugIn{
               Output.add(result);
               count++;
           }
+          System.out.println("Could not place "+ (rois.size()-count) + " number of spines in dendtrites "+ 100* (rois.size()-count)/rois.size() + "%");
          
           return Output;
     }
